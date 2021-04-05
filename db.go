@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Database represents a GORM database with a Redis cache-aside.
@@ -18,8 +20,39 @@ type Database struct {
 	sugar *zap.SugaredLogger
 }
 
+// GormZapLogger is a GORM adapter for zap.
+type GormZapLogger struct {
+	sugar *zap.SugaredLogger
+}
+
+func (gz *GormZapLogger) LogMode(level logger.LogLevel) logger.Interface {
+	return gz
+}
+
+func (gz *GormZapLogger) Info(ctx context.Context, msg string, keysAndValues ...interface{}) {
+	gz.sugar.Infow(msg, keysAndValues)
+}
+
+func (gz *GormZapLogger) Warn(ctx context.Context, msg string, keysAndValues ...interface{}) {
+	gz.sugar.Warnw(msg, keysAndValues)
+}
+
+func (gz *GormZapLogger) Error(ctx context.Context, msg string, keysAndValues ...interface{}) {
+	gz.sugar.Errorw(msg, keysAndValues)
+}
+
+func (gz *GormZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	elapsed := time.Since(begin)
+	sql, rows := fc()
+	if err != nil {
+		gz.sugar.Errorf("%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+	}
+}
+
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
-	db, err := gorm.Open(mysql.Open(os.Getenv("MYSQL_LOCATION")), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(os.Getenv("MYSQL_LOCATION")), &gorm.Config{
+		Logger: &GormZapLogger{sugar: sugar},
+	})
 	if err != nil {
 		return nil, err
 	}
