@@ -1,11 +1,23 @@
 package main
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 )
 
 var rng *rand.Rand
+
+func checkRoll(drops []Drop, val float32) (*Drop, error) {
+	agg := float32(0)
+	for _, drop := range drops {
+		agg += drop.Rate
+		if agg > val {
+			return &drop, nil
+		}
+	}
+	return nil, errors.New("drop rates do not sum to 1.0")
+}
 
 func main() {
 	// Set up logging
