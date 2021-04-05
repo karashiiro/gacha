@@ -10,7 +10,7 @@ func main() {
 	sugar := logger.Sugar()
 
 	// Connect to database
-	_, err = NewDatabase()
+	_, err = NewDatabase(sugar)
 	if err != nil {
 		sugar.Errorw("couldn't connect to database, aborting")
 		panic(err)
