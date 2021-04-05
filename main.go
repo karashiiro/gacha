@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewLogger creates a file/console logger.
 func NewLogger() (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = append(cfg.OutputPaths, "log/gacha.log")
@@ -20,6 +21,7 @@ func NewLogger() (*zap.Logger, error) {
 }
 
 func main() {
+	// Set up logging
 	logger, err := NewLogger()
 	if err != nil {
 		panic(err)
@@ -27,5 +29,12 @@ func main() {
 	defer logger.Sync()
 	sugar := logger.Sugar()
 
-	sugar.Infow("Application started.")
+	// Connect to database
+	_, err = NewDatabase()
+	if err != nil {
+		sugar.Errorw("couldn't connect to database, aborting")
+		panic(err)
+	}
+
+	sugar.Infow("application started")
 }
