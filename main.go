@@ -1,5 +1,12 @@
 package main
 
+import (
+	"math/rand"
+	"time"
+)
+
+var rng *rand.Rand
+
 func main() {
 	// Set up logging
 	logger, err := NewLogger()
@@ -16,5 +23,13 @@ func main() {
 		panic(err)
 	}
 
+	// Initialize randomizer with current time
+	rngSource := rand.NewSource(time.Now().Unix())
+	rng = rand.New(rngSource)
+
 	sugar.Infow("application started")
+
+	sugar.Infow("random number generated",
+		"number", rng.Float32(),
+	)
 }
