@@ -135,7 +135,9 @@ func main() {
 					)
 				}
 
-				sugar.Infof("rolled %v", roll)
+				sugar.Infow(fmt.Sprintf("rolled %v", roll),
+					"correlation_id", d.CorrelationId,
+				)
 
 				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
 					ContentType:   "text/plain",
