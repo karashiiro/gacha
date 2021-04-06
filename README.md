@@ -1,5 +1,5 @@
 # gacha
-Gacha gacha
+Gacha microservice written in Go.
 
 ## Environment variables
 ```
