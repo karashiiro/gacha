@@ -215,13 +215,30 @@ func main() {
 					"correlation_id", d.CorrelationId,
 				)
 
-				r := &message.Result{
-					Success: true,
-				}
-
-				rb, err := json.Marshal(r)
+				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
+					ContentType:   "text/plain",
+					CorrelationId: d.CorrelationId,
+					Body:          []byte("Success"),
+				})
 				if err != nil {
-					sugar.Errorw("json marshalling failed",
+					sugar.Errorw("reply failed",
+						"error", err,
+						"correlation_id", d.CorrelationId,
+					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
+				}
+			case "delete_drop_table":
+				seriesName := m.Parameters[0]
+				err := db.DeleteDropTable(seriesName)
+				if err != nil {
+					sugar.Errorw("series deletion failed",
 						"error", err,
 						"correlation_id", d.CorrelationId,
 					)
@@ -236,9 +253,9 @@ func main() {
 				}
 
 				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
-					ContentType:   "application/json",
+					ContentType:   "text/plain",
 					CorrelationId: d.CorrelationId,
-					Body:          rb,
+					Body:          []byte("Success"),
 				})
 				if err != nil {
 					sugar.Errorw("reply failed",
