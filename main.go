@@ -65,7 +65,7 @@ func main() {
 	}
 	defer ch.Close()
 
-	mq, err := ch.QueueDeclare("gacha", false, false, false, false, nil)
+	mq, err := ch.QueueDeclare("gacha_v0", false, false, false, false, nil)
 	if err != nil {
 		sugar.Errorf("couldn't open message queue, aborting",
 			"error", err,
@@ -73,7 +73,15 @@ func main() {
 		panic(err)
 	}
 
-	msgs, err := ch.Consume(mq.Name, "", true, false, false, false, nil)
+	err = ch.Qos(1, 0, false)
+	if err != nil {
+		sugar.Errorf("couldn't set QoS, aborting",
+			"error", err,
+		)
+		panic(err)
+	}
+
+	msgs, err := ch.Consume(mq.Name, "", false, false, false, false, nil)
 	if err != nil {
 		sugar.Errorw("couldn't begin consuming messages from queue, aborting",
 			"error", err,
@@ -96,13 +104,18 @@ func main() {
 				sugar.Errorw("failed to unmarshal message",
 					"error", err,
 				)
+				err = d.Reject(false)
+				if err != nil {
+					sugar.Warnw("message ack could not be delivered to channel",
+						"error", err,
+					)
+				}
 				continue
 			}
 
 			switch m.Command {
 			case "roll":
-				// Test roll functionality
-				rows, err := db.GetDropTable("test")
+				rows, err := db.GetDropTable(m.Parameters[0])
 				if err != nil {
 					sugar.Errorw("failed to get rows",
 						"error", err,
@@ -121,7 +134,43 @@ func main() {
 					)
 				}
 
-				sugar.Infof("Rolled %v", roll)
+				sugar.Infof("rolled %v", roll)
+
+				res, err := json.Marshal(roll)
+				if err != nil {
+					sugar.Errorw("JSON marshalling failed",
+						"error", err,
+					)
+				}
+
+				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
+					ContentType:   "application/json",
+					CorrelationId: d.CorrelationId,
+					Body:          res,
+				})
+				if err != nil {
+					sugar.Errorw("reply failed",
+						"error", err,
+					)
+				}
+			default:
+				sugar.Warnw("received unknown message",
+					"unk_msg", string(d.Body),
+				)
+				err = d.Reject(false)
+				if err != nil {
+					sugar.Warnw("message ack could not be delivered to channel",
+						"error", err,
+					)
+				}
+				continue
+			}
+
+			err = d.Ack(false)
+			if err != nil {
+				sugar.Warnw("message ack could not be delivered to channel",
+					"error", err,
+				)
 			}
 		}
 	}()

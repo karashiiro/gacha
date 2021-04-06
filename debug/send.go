@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/google/uuid"
+	"github.com/karashiiro/gacha/ent"
 	"github.com/karashiiro/gacha/message"
 	"github.com/streadway/amqp"
 )
 
 func main() {
 	m := &message.Message{
-		Command: "roll",
+		Command:    "roll",
+		Parameters: []string{"test"},
 	}
 
 	mBytes, err := json.Marshal(m)
@@ -30,16 +33,38 @@ func main() {
 	}
 	defer ch.Close()
 
-	mq, err := ch.QueueDeclare("gacha", false, false, false, false, nil)
+	mq, err := ch.QueueDeclare("", false, false, true, false, nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	err = ch.Publish("", mq.Name, false, false, amqp.Publishing{
-		ContentType: "application/json",
-		Body:        mBytes,
+	msgs, err := ch.Consume(mq.Name, "", false, false, false, false, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	corrID := uuid.NewString()
+
+	err = ch.Publish("", "gacha_v0", false, false, amqp.Publishing{
+		ContentType:   "application/json",
+		CorrelationId: corrID,
+		ReplyTo:       mq.Name,
+		Body:          mBytes,
 	})
 	if err != nil {
 		log.Fatalln(err)
 	}
+
+	var roll ent.Drop
+	for d := range msgs {
+		if corrID == d.CorrelationId {
+			err = json.Unmarshal(d.Body, &roll)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			break
+		}
+	}
+
+	log.Printf("Rolled %v", roll)
 }
