@@ -1,26 +1,26 @@
 version: "3.9"
 services:
-    mariadb:
-        image: mariadb:10.5.9
-        restart: always
-        environment:
-            MYSQL_ROOT_PASSWORD: alpine
-        ports:
-            - "3306:3306"
-        volumes:
-            - type: volume
-                source: maria-data
-                target: /var/lib/mysql
-    redis:
-        image: redis:5.0.9
-        restart: always
-        ports:
-            - "6379:6379"
-    gacha:
-        image: gacha
-        restart: always
-        environment:
-            MYSQL_CONNECTION_STRING: root:alpine@tcp(localhost:3306)/
-            REDIS_LOCATION: localhost:6379
+  mariadb:
+    image: mariadb:10.5.9
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: alpine
+    ports:
+      - "7225:7225"
+    volumes:
+      - type: volume
+        source: maria-data
+        target: /var/lib/mysql
+  redis:
+    image: redis:5.0.9
+    restart: always
+    ports:
+      - "7226:7226"
+  gacha:
+    image: gacha:v0
+    restart: always
+    environment:
+      MYSQL_CONNECTION_STRING: root:alpine@tcp(localhost:7225)/
+      REDIS_LOCATION: localhost:7226
 volumes:
-    maria-data:
+  maria-data:
