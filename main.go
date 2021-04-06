@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -136,17 +137,10 @@ func main() {
 
 				sugar.Infof("rolled %v", roll)
 
-				res, err := json.Marshal(roll)
-				if err != nil {
-					sugar.Errorw("JSON marshalling failed",
-						"error", err,
-					)
-				}
-
 				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
-					ContentType:   "application/json",
+					ContentType:   "text/plain",
 					CorrelationId: d.CorrelationId,
-					Body:          res,
+					Body:          []byte(fmt.Sprint(roll.ObjectID)),
 				})
 				if err != nil {
 					sugar.Errorw("reply failed",

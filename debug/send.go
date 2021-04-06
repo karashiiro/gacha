@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/karashiiro/gacha/ent"
 	"github.com/karashiiro/gacha/message"
 	"github.com/streadway/amqp"
 )
@@ -55,10 +55,10 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	var roll ent.Drop
+	var roll int
 	for d := range msgs {
 		if corrID == d.CorrelationId {
-			err = json.Unmarshal(d.Body, &roll)
+			roll, err = strconv.Atoi(string(d.Body))
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -66,5 +66,5 @@ func main() {
 		}
 	}
 
-	log.Printf("Rolled %v", roll)
+	log.Printf("Rolled object with ID: %d", roll)
 }
