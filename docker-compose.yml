@@ -17,10 +17,15 @@ services:
     ports:
       - "7226:7226"
   gacha:
-    image: gacha:v0
+    image: gacha
     restart: always
     environment:
       MYSQL_CONNECTION_STRING: root:alpine@tcp(localhost:7225)/
       REDIS_LOCATION: localhost:7226
+    volumes:
+      - type: volume
+        source: gacha-log
+        target: /app/log
 volumes:
   maria-data:
+  gacha-log:
