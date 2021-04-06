@@ -2,13 +2,16 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/karashiiro/gacha/ent"
 )
 
 var rng *rand.Rand
 
-func checkRoll(drops []Drop, val float32) (*Drop, error) {
+func checkRoll(drops []ent.Drop, val float32) (*ent.Drop, error) {
 	agg := float32(0)
 	for _, drop := range drops {
 		agg += drop.Rate
@@ -29,11 +32,12 @@ func main() {
 	sugar := logger.Sugar()
 
 	// Connect to database
-	_, err = NewDatabase(sugar)
+	db, err := NewDatabase(sugar)
 	if err != nil {
 		sugar.Errorw("couldn't connect to database, aborting")
 		panic(err)
 	}
+	defer db.edb.Close()
 
 	// Initialize randomizer with current time
 	rngSource := rand.NewSource(time.Now().Unix())
@@ -44,4 +48,15 @@ func main() {
 	sugar.Infow("random number generated",
 		"number", rng.Float32(),
 	)
+
+	rows, err := db.GetDropTable("test_drops")
+	if err != nil {
+		sugar.Errorw("failed to get rows",
+			"error", err,
+		)
+	}
+
+	for _, row := range rows {
+		fmt.Println(row)
+	}
 }

@@ -2,69 +2,63 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"os"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/go-redis/redis/v8"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/karashiiro/gacha/ent"
+	"github.com/karashiiro/gacha/ent/drop"
 	"go.uber.org/zap"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // Database represents a GORM database with a Redis cache-aside.
 type Database struct {
-	db    *gorm.DB
+	edb   *ent.Client
 	rdb   *redis.Client
 	sugar *zap.SugaredLogger
 }
 
-// GormZapLogger is a GORM adapter for zap.
-type GormZapLogger struct {
-	sugar *zap.SugaredLogger
-}
-
-func (gz *GormZapLogger) LogMode(level logger.LogLevel) logger.Interface {
-	return gz
-}
-
-func (gz *GormZapLogger) Info(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Infof(msg, keysAndValues)
-}
-
-func (gz *GormZapLogger) Warn(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Warnf(msg, keysAndValues)
-}
-
-func (gz *GormZapLogger) Error(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Errorf(msg, keysAndValues)
-}
-
-func (gz *GormZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	elapsed := time.Since(begin)
-	sql, rows := fc()
-	if err != nil {
-		gz.sugar.Errorf("%s\n[%.3fms] [rows:%v] %s", err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
-	}
-}
-
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
-	db, err := gorm.Open(mysql.Open(os.Getenv("MYSQL_CONNECTION_STRING")), &gorm.Config{
-		Logger: &GormZapLogger{sugar: sugar},
-	})
+	db, err := sql.Open("mysql", os.Getenv("MYSQL_CONNECTION_STRING"))
 	if err != nil {
 		return nil, err
 	}
 
-	db.Exec("CREATE DATABASE IF NOT EXISTS drops CHARACTER SET = 'utf8';")
+	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(100)
+	db.SetConnMaxLifetime(time.Hour)
+	driver := entsql.OpenDB("mysql", db)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS gacha CHARACTER SET = 'utf8';")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("USE gacha;")
+	if err != nil {
+		return nil, err
+	}
+
+	edb := ent.NewClient(ent.Driver(driver))
+
+	// Run auto-migration
+	if err := edb.Schema.Create(context.Background()); err != nil {
+		return nil, err
+	}
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_LOCATION"),
 	})
 
 	d := &Database{
-		db:    db,
+		edb:   edb,
 		rdb:   rdb,
 		sugar: sugar,
 	}
@@ -72,15 +66,14 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	return d, nil
 }
 
-func (d *Database) GetDropTable(name string) ([]Drop, error) {
-	var dropTable []Drop
+func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
+	var dropTable []ent.Drop
 
 	val, err := d.rdb.Get(context.Background(), name).Result()
 	if err == redis.Nil {
-		table := d.db.Table(name)
-		table.AutoMigrate(&Drop{})
+		ctx := context.Background()
 
-		rows, err := table.Rows()
+		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(name)).All(ctx)
 		if err != nil {
 			d.sugar.Errorw("failed to fetch table rows",
 				"name", name,
@@ -90,20 +83,13 @@ func (d *Database) GetDropTable(name string) ([]Drop, error) {
 		}
 
 		// Copy the DB rows into a slice
-		var rowCount int64
-		table.Count(&rowCount)
-		drops := make([]Drop, rowCount)
-		i := 0
-		for rows.Next() {
-			err = rows.Scan(&drops[i])
-			if err != nil {
-				d.sugar.Error("failed to copy rows to slice")
-				return nil, err
-			}
+		drops := make([]ent.Drop, len(rows))
+		for i, row := range rows {
+			drops[i] = *row
 		}
 
 		// Cache the slice
-		err = d.rdb.Set(context.Background(), name, drops, 0).Err()
+		err = d.rdb.Set(ctx, name, drops, 0).Err()
 		if err != nil {
 			d.sugar.Errorw("failed to cache table",
 				"name", name,
