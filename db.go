@@ -118,27 +118,25 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 	return dropTable, nil
 }
 
-// AddSeries constructs a new series and inserts it into the database.
-func (d *Database) AddSeries(name string) error {
-	_, err := d.edb.Series.Create().
-		SetName(name).
+func (d *Database) addSeries(seriesName string) (*ent.Series, error) {
+	return d.edb.Series.Create().
+		SetName(seriesName).
 		Save(context.Background())
-	return err
 }
 
-// DeleteSeries deletes a series and all of its children.
-func (d *Database) DeleteSeries(name string) error {
+// DeleteDropTable deletes a series and all of its children.
+func (d *Database) DeleteDropTable(seriesName string) error {
 	ctx := context.Background()
 
 	_, err := d.edb.Drop.Delete().
-		Where(drop.HasSeriesWith(series.NameEQ(name))).
+		Where(drop.HasSeriesWith(series.NameEQ(seriesName))).
 		Exec(ctx)
 	if err != nil {
 		return err
 	}
 
 	_, err = d.edb.Series.Delete().
-		Where(series.NameEQ(name)).
+		Where(series.NameEQ(seriesName)).
 		Exec(ctx)
 
 	return err
@@ -154,9 +152,7 @@ type DropInsert struct {
 func (d *Database) SetDropTable(seriesName string, drops []DropInsert) error {
 	ctx := context.Background()
 
-	sr, err := d.edb.Series.Query().
-		Where(series.NameEQ(seriesName)).
-		First(ctx)
+	sr, err := d.addSeries(seriesName)
 	if err != nil {
 		return err
 	}
