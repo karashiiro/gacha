@@ -57,8 +57,6 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&Drop{})
-
 	rdb := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_LOCATION"),
 	})
@@ -72,21 +70,38 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	return d, nil
 }
 
-func (d *Database) GetTable(name string) ([]Drop, error) {
+func (d *Database) GetDropTable(name string) ([]Drop, error) {
 	var dropTable []Drop
 
 	val, err := d.rdb.Get(context.Background(), name).Result()
 	if err == redis.Nil {
-		dbVal, result := d.db.Get(name)
-		if !result {
-			d.sugar.Errorw("failed to fetch table",
+		table := d.db.Table(name)
+		table.AutoMigrate(&Drop{})
+
+		rows, err := table.Rows()
+		if err != nil {
+			d.sugar.Errorw("failed to fetch table rows",
 				"name", name,
 			)
 
 			return nil, err
 		}
 
-		err = d.rdb.Set(context.Background(), name, dbVal, 0).Err()
+		// Copy the DB rows into a slice
+		var rowCount int64
+		table.Count(&rowCount)
+		drops := make([]Drop, rowCount)
+		i := 0
+		for rows.Next() {
+			err = rows.Scan(&drops[i])
+			if err != nil {
+				d.sugar.Error("failed to copy rows to slice")
+				return nil, err
+			}
+		}
+
+		// Cache the slice
+		err = d.rdb.Set(context.Background(), name, drops, 0).Err()
 		if err != nil {
 			d.sugar.Errorw("failed to cache table",
 				"name", name,
@@ -95,7 +110,7 @@ func (d *Database) GetTable(name string) ([]Drop, error) {
 			return nil, err
 		}
 
-		dropTable = dbVal.([]Drop)
+		dropTable = drops
 	}
 
 	err = json.Unmarshal([]byte(val), &dropTable)
