@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Database represents a ent database with a Redis cache-aside.
+// Database represents an ent database with a Redis cache-aside.
 type Database struct {
 	edb   *ent.Client
 	rdb   *cache.Cache
