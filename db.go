@@ -57,6 +57,8 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 		return nil, err
 	}
 
+	db.Exec("CREATE DATABASE IF NOT EXISTS drops CHARACTER SET = 'utf8';")
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_LOCATION"),
 	})
