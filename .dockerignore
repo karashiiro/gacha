@@ -1,0 +1,5 @@
+.git/
+gacha*
+.idea/
+.vscode/
+log/
