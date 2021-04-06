@@ -16,7 +16,7 @@ REDIS_CONNECTION_STRING: Connection string for local Redis server
 ```json
 {
     "command": "roll",
-    "parameters": []
+    "parameters": ["drop_table_name"]
 }
 ```
 Performs a single roll.
