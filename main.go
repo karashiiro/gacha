@@ -209,7 +209,7 @@ func main() {
 					continue
 				}
 
-				sugar.Infow(fmt.Sprintf("set table %s", m.Parameters[0]),
+				sugar.Infow(fmt.Sprintf("set drop table: %s", m.Parameters[0]),
 					"correlation_id", d.CorrelationId,
 				)
 
@@ -249,6 +249,10 @@ func main() {
 					}
 					continue
 				}
+
+				sugar.Infow(fmt.Sprintf("deleted drop table: %s", seriesName),
+					"correlation_id", d.CorrelationId,
+				)
 
 				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
 					ContentType:   "text/plain",
