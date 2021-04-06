@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"time"
 
@@ -23,6 +24,7 @@ type Database struct {
 	sugar *zap.SugaredLogger
 }
 
+// NewDatabase creates a new database connection.
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	// Connect to database
 	db, err := sql.Open("mysql", os.Getenv("MYSQL_CONNECTION_STRING"))
@@ -73,6 +75,7 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	return d, nil
 }
 
+// GetDropTable returns the drop table associated with the specified series name.
 func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 	var dropTable []ent.Drop
 
@@ -89,10 +92,6 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 			Where(drop.HasSeriesWith(series.NameEQ(name))).
 			All(ctx)
 		if err != nil {
-			d.sugar.Errorw("failed to fetch table rows",
-				"name", name,
-			)
-
 			return nil, err
 		}
 
@@ -110,10 +109,6 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 			TTL:   30 * 24 * time.Hour,
 		})
 		if err != nil {
-			d.sugar.Errorw("failed to cache table",
-				"name", name,
-			)
-
 			return nil, err
 		}
 
@@ -121,4 +116,74 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 	}
 
 	return dropTable, nil
+}
+
+// AddSeries constructs a new series and inserts it into the database.
+func (d *Database) AddSeries(name string) error {
+	_, err := d.edb.Series.Create().
+		SetName(name).
+		Save(context.Background())
+	return err
+}
+
+// DeleteSeries deletes a series and all of its children.
+func (d *Database) DeleteSeries(name string) error {
+	ctx := context.Background()
+
+	_, err := d.edb.Drop.Delete().
+		Where(drop.HasSeriesWith(series.NameEQ(name))).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.edb.Series.Delete().
+		Where(series.NameEQ(name)).
+		Exec(ctx)
+
+	return err
+}
+
+// DropInsert is an insert request for a new drop.
+type DropInsert struct {
+	ObjectID uint32  `json:"object_id"`
+	Rate     float32 `json:"rate"`
+}
+
+// AddDropTable adds a single drop table to the database. The rates of each inserted drop must sum to 1.0.
+func (d *Database) SetDropTable(seriesName string, drops []DropInsert) error {
+	ctx := context.Background()
+
+	sr, err := d.edb.Series.Query().
+		Where(series.NameEQ(seriesName)).
+		First(ctx)
+	if err != nil {
+		return err
+	}
+
+	agg := float32(0)
+	builders := make([]*ent.DropCreate, len(drops))
+	for i, di := range drops {
+		agg += di.Rate
+		builders[i] = d.edb.Drop.Create().
+			SetObjectID(di.ObjectID).
+			SetRate(di.Rate).
+			SetSeriesID(sr.ID)
+	}
+
+	if agg != 1.0 {
+		return errors.New("series rates must sum to 1.0")
+	}
+
+	_, err = d.edb.Drop.Delete().
+		Where(drop.HasSeriesWith(series.NameEQ(seriesName))).
+		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.edb.Drop.CreateBulk(builders...).
+		Save(ctx)
+
+	return err
 }
