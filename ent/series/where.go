@@ -4,6 +4,7 @@ package series
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/karashiiro/gacha/ent/predicate"
 )
 
@@ -205,6 +206,34 @@ func NameEqualFold(v string) predicate.Series {
 func NameContainsFold(v string) predicate.Series {
 	return predicate.Series(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldName), v))
+	})
+}
+
+// HasDrops applies the HasEdge predicate on the "drops" edge.
+func HasDrops() predicate.Series {
+	return predicate.Series(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(DropsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DropsTable, DropsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasDropsWith applies the HasEdge predicate on the "drops" edge with a given conditions (other predicates).
+func HasDropsWith(preds ...predicate.Drop) predicate.Series {
+	return predicate.Series(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(DropsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, DropsTable, DropsColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

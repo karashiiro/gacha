@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/karashiiro/gacha/ent/drop"
+	"github.com/karashiiro/gacha/ent/series"
 )
 
 // Drop is the model entity for the Drop schema.
@@ -15,10 +16,38 @@ type Drop struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID uint32 `json:"id,omitempty"`
+	// ObjectID holds the value of the "object_id" field.
+	ObjectID uint32 `json:"object_id,omitempty"`
 	// Rate holds the value of the "rate" field.
 	Rate float32 `json:"rate,omitempty"`
-	// Series holds the value of the "series" field.
-	Series uint32 `json:"series,omitempty"`
+	// SeriesID holds the value of the "series_id" field.
+	SeriesID uint32 `json:"series_id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the DropQuery when eager-loading is set.
+	Edges DropEdges `json:"edges"`
+}
+
+// DropEdges holds the relations/edges for other nodes in the graph.
+type DropEdges struct {
+	// Series holds the value of the series edge.
+	Series *Series `json:"series,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// SeriesOrErr returns the Series value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e DropEdges) SeriesOrErr() (*Series, error) {
+	if e.loadedTypes[0] {
+		if e.Series == nil {
+			// The edge series was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: series.Label}
+		}
+		return e.Series, nil
+	}
+	return nil, &NotLoadedError{edge: "series"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -28,7 +57,7 @@ func (*Drop) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case drop.FieldRate:
 			values[i] = &sql.NullFloat64{}
-		case drop.FieldID, drop.FieldSeries:
+		case drop.FieldID, drop.FieldObjectID, drop.FieldSeriesID:
 			values[i] = &sql.NullInt64{}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Drop", columns[i])
@@ -51,21 +80,32 @@ func (d *Drop) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			d.ID = uint32(value.Int64)
+		case drop.FieldObjectID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field object_id", values[i])
+			} else if value.Valid {
+				d.ObjectID = uint32(value.Int64)
+			}
 		case drop.FieldRate:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field rate", values[i])
 			} else if value.Valid {
 				d.Rate = float32(value.Float64)
 			}
-		case drop.FieldSeries:
+		case drop.FieldSeriesID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field series", values[i])
+				return fmt.Errorf("unexpected type %T for field series_id", values[i])
 			} else if value.Valid {
-				d.Series = uint32(value.Int64)
+				d.SeriesID = uint32(value.Int64)
 			}
 		}
 	}
 	return nil
+}
+
+// QuerySeries queries the "series" edge of the Drop entity.
+func (d *Drop) QuerySeries() *SeriesQuery {
+	return (&DropClient{config: d.config}).QuerySeries(d)
 }
 
 // Update returns a builder for updating this Drop.
@@ -91,10 +131,12 @@ func (d *Drop) String() string {
 	var builder strings.Builder
 	builder.WriteString("Drop(")
 	builder.WriteString(fmt.Sprintf("id=%v", d.ID))
+	builder.WriteString(", object_id=")
+	builder.WriteString(fmt.Sprintf("%v", d.ObjectID))
 	builder.WriteString(", rate=")
 	builder.WriteString(fmt.Sprintf("%v", d.Rate))
-	builder.WriteString(", series=")
-	builder.WriteString(fmt.Sprintf("%v", d.Series))
+	builder.WriteString(", series_id=")
+	builder.WriteString(fmt.Sprintf("%v", d.SeriesID))
 	builder.WriteByte(')')
 	return builder.String()
 }

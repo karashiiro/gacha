@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/predicate"
 	"github.com/karashiiro/gacha/ent/series"
 )
@@ -32,9 +33,45 @@ func (su *SeriesUpdate) SetName(s string) *SeriesUpdate {
 	return su
 }
 
+// AddDropIDs adds the "drops" edge to the Drop entity by IDs.
+func (su *SeriesUpdate) AddDropIDs(ids ...uint32) *SeriesUpdate {
+	su.mutation.AddDropIDs(ids...)
+	return su
+}
+
+// AddDrops adds the "drops" edges to the Drop entity.
+func (su *SeriesUpdate) AddDrops(d ...*Drop) *SeriesUpdate {
+	ids := make([]uint32, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return su.AddDropIDs(ids...)
+}
+
 // Mutation returns the SeriesMutation object of the builder.
 func (su *SeriesUpdate) Mutation() *SeriesMutation {
 	return su.mutation
+}
+
+// ClearDrops clears all "drops" edges to the Drop entity.
+func (su *SeriesUpdate) ClearDrops() *SeriesUpdate {
+	su.mutation.ClearDrops()
+	return su
+}
+
+// RemoveDropIDs removes the "drops" edge to Drop entities by IDs.
+func (su *SeriesUpdate) RemoveDropIDs(ids ...uint32) *SeriesUpdate {
+	su.mutation.RemoveDropIDs(ids...)
+	return su
+}
+
+// RemoveDrops removes "drops" edges to Drop entities.
+func (su *SeriesUpdate) RemoveDrops(d ...*Drop) *SeriesUpdate {
+	ids := make([]uint32, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return su.RemoveDropIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -113,6 +150,60 @@ func (su *SeriesUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: series.FieldName,
 		})
 	}
+	if su.mutation.DropsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.RemovedDropsIDs(); len(nodes) > 0 && !su.mutation.DropsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := su.mutation.DropsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, su.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{series.Label}
@@ -137,9 +228,45 @@ func (suo *SeriesUpdateOne) SetName(s string) *SeriesUpdateOne {
 	return suo
 }
 
+// AddDropIDs adds the "drops" edge to the Drop entity by IDs.
+func (suo *SeriesUpdateOne) AddDropIDs(ids ...uint32) *SeriesUpdateOne {
+	suo.mutation.AddDropIDs(ids...)
+	return suo
+}
+
+// AddDrops adds the "drops" edges to the Drop entity.
+func (suo *SeriesUpdateOne) AddDrops(d ...*Drop) *SeriesUpdateOne {
+	ids := make([]uint32, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return suo.AddDropIDs(ids...)
+}
+
 // Mutation returns the SeriesMutation object of the builder.
 func (suo *SeriesUpdateOne) Mutation() *SeriesMutation {
 	return suo.mutation
+}
+
+// ClearDrops clears all "drops" edges to the Drop entity.
+func (suo *SeriesUpdateOne) ClearDrops() *SeriesUpdateOne {
+	suo.mutation.ClearDrops()
+	return suo
+}
+
+// RemoveDropIDs removes the "drops" edge to Drop entities by IDs.
+func (suo *SeriesUpdateOne) RemoveDropIDs(ids ...uint32) *SeriesUpdateOne {
+	suo.mutation.RemoveDropIDs(ids...)
+	return suo
+}
+
+// RemoveDrops removes "drops" edges to Drop entities.
+func (suo *SeriesUpdateOne) RemoveDrops(d ...*Drop) *SeriesUpdateOne {
+	ids := make([]uint32, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return suo.RemoveDropIDs(ids...)
 }
 
 // Save executes the query and returns the updated Series entity.
@@ -222,6 +349,60 @@ func (suo *SeriesUpdateOne) sqlSave(ctx context.Context) (_node *Series, err err
 			Value:  value,
 			Column: series.FieldName,
 		})
+	}
+	if suo.mutation.DropsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.RemovedDropsIDs(); len(nodes) > 0 && !suo.mutation.DropsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := suo.mutation.DropsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Series{config: suo.config}
 	_spec.Assign = _node.assignValues

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/predicate"
 	"github.com/karashiiro/gacha/ent/series"
 )
@@ -23,6 +25,8 @@ type SeriesQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Series
+	// eager-loading edges.
+	withDrops *DropQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -50,6 +54,28 @@ func (sq *SeriesQuery) Offset(offset int) *SeriesQuery {
 func (sq *SeriesQuery) Order(o ...OrderFunc) *SeriesQuery {
 	sq.order = append(sq.order, o...)
 	return sq
+}
+
+// QueryDrops chains the current query on the "drops" edge.
+func (sq *SeriesQuery) QueryDrops() *DropQuery {
+	query := &DropQuery{config: sq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := sq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := sq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(series.Table, series.FieldID, selector),
+			sqlgraph.To(drop.Table, drop.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, series.DropsTable, series.DropsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(sq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Series entity from the query.
@@ -233,10 +259,22 @@ func (sq *SeriesQuery) Clone() *SeriesQuery {
 		offset:     sq.offset,
 		order:      append([]OrderFunc{}, sq.order...),
 		predicates: append([]predicate.Series{}, sq.predicates...),
+		withDrops:  sq.withDrops.Clone(),
 		// clone intermediate query.
 		sql:  sq.sql.Clone(),
 		path: sq.path,
 	}
+}
+
+// WithDrops tells the query-builder to eager-load the nodes that are connected to
+// the "drops" edge. The optional arguments are used to configure the query builder of the edge.
+func (sq *SeriesQuery) WithDrops(opts ...func(*DropQuery)) *SeriesQuery {
+	query := &DropQuery{config: sq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	sq.withDrops = query
+	return sq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -302,8 +340,11 @@ func (sq *SeriesQuery) prepareQuery(ctx context.Context) error {
 
 func (sq *SeriesQuery) sqlAll(ctx context.Context) ([]*Series, error) {
 	var (
-		nodes = []*Series{}
-		_spec = sq.querySpec()
+		nodes       = []*Series{}
+		_spec       = sq.querySpec()
+		loadedTypes = [1]bool{
+			sq.withDrops != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Series{config: sq.config}
@@ -315,6 +356,7 @@ func (sq *SeriesQuery) sqlAll(ctx context.Context) ([]*Series, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, sq.driver, _spec); err != nil {
@@ -323,6 +365,32 @@ func (sq *SeriesQuery) sqlAll(ctx context.Context) ([]*Series, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := sq.withDrops; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[uint32]*Series)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Drops = []*Drop{}
+		}
+		query.Where(predicate.Drop(func(s *sql.Selector) {
+			s.Where(sql.InValues(series.DropsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.SeriesID
+			node, ok := nodeids[fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "series_id" returned %v for node %v`, fk, n.ID)
+			}
+			node.Edges.Drops = append(node.Edges.Drops, n)
+		}
+	}
+
 	return nodes, nil
 }
 

@@ -4,6 +4,7 @@ package drop
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/karashiiro/gacha/ent/predicate"
 )
 
@@ -90,6 +91,13 @@ func IDLTE(id uint32) predicate.Drop {
 	})
 }
 
+// ObjectID applies equality check predicate on the "object_id" field. It's identical to ObjectIDEQ.
+func ObjectID(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldObjectID), v))
+	})
+}
+
 // Rate applies equality check predicate on the "rate" field. It's identical to RateEQ.
 func Rate(v float32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
@@ -97,10 +105,86 @@ func Rate(v float32) predicate.Drop {
 	})
 }
 
-// Series applies equality check predicate on the "series" field. It's identical to SeriesEQ.
-func Series(v uint32) predicate.Drop {
+// SeriesID applies equality check predicate on the "series_id" field. It's identical to SeriesIDEQ.
+func SeriesID(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldSeries), v))
+		s.Where(sql.EQ(s.C(FieldSeriesID), v))
+	})
+}
+
+// ObjectIDEQ applies the EQ predicate on the "object_id" field.
+func ObjectIDEQ(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldObjectID), v))
+	})
+}
+
+// ObjectIDNEQ applies the NEQ predicate on the "object_id" field.
+func ObjectIDNEQ(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldObjectID), v))
+	})
+}
+
+// ObjectIDIn applies the In predicate on the "object_id" field.
+func ObjectIDIn(vs ...uint32) predicate.Drop {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Drop(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldObjectID), v...))
+	})
+}
+
+// ObjectIDNotIn applies the NotIn predicate on the "object_id" field.
+func ObjectIDNotIn(vs ...uint32) predicate.Drop {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Drop(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldObjectID), v...))
+	})
+}
+
+// ObjectIDGT applies the GT predicate on the "object_id" field.
+func ObjectIDGT(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldObjectID), v))
+	})
+}
+
+// ObjectIDGTE applies the GTE predicate on the "object_id" field.
+func ObjectIDGTE(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldObjectID), v))
+	})
+}
+
+// ObjectIDLT applies the LT predicate on the "object_id" field.
+func ObjectIDLT(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldObjectID), v))
+	})
+}
+
+// ObjectIDLTE applies the LTE predicate on the "object_id" field.
+func ObjectIDLTE(v uint32) predicate.Drop {
+	return predicate.Drop(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldObjectID), v))
 	})
 }
 
@@ -180,22 +264,22 @@ func RateLTE(v float32) predicate.Drop {
 	})
 }
 
-// SeriesEQ applies the EQ predicate on the "series" field.
-func SeriesEQ(v uint32) predicate.Drop {
+// SeriesIDEQ applies the EQ predicate on the "series_id" field.
+func SeriesIDEQ(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldSeries), v))
+		s.Where(sql.EQ(s.C(FieldSeriesID), v))
 	})
 }
 
-// SeriesNEQ applies the NEQ predicate on the "series" field.
-func SeriesNEQ(v uint32) predicate.Drop {
+// SeriesIDNEQ applies the NEQ predicate on the "series_id" field.
+func SeriesIDNEQ(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldSeries), v))
+		s.Where(sql.NEQ(s.C(FieldSeriesID), v))
 	})
 }
 
-// SeriesIn applies the In predicate on the "series" field.
-func SeriesIn(vs ...uint32) predicate.Drop {
+// SeriesIDIn applies the In predicate on the "series_id" field.
+func SeriesIDIn(vs ...uint32) predicate.Drop {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -207,12 +291,12 @@ func SeriesIn(vs ...uint32) predicate.Drop {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.In(s.C(FieldSeries), v...))
+		s.Where(sql.In(s.C(FieldSeriesID), v...))
 	})
 }
 
-// SeriesNotIn applies the NotIn predicate on the "series" field.
-func SeriesNotIn(vs ...uint32) predicate.Drop {
+// SeriesIDNotIn applies the NotIn predicate on the "series_id" field.
+func SeriesIDNotIn(vs ...uint32) predicate.Drop {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -224,35 +308,35 @@ func SeriesNotIn(vs ...uint32) predicate.Drop {
 			s.Where(sql.False())
 			return
 		}
-		s.Where(sql.NotIn(s.C(FieldSeries), v...))
+		s.Where(sql.NotIn(s.C(FieldSeriesID), v...))
 	})
 }
 
-// SeriesGT applies the GT predicate on the "series" field.
-func SeriesGT(v uint32) predicate.Drop {
+// HasSeries applies the HasEdge predicate on the "series" edge.
+func HasSeries() predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldSeries), v))
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(SeriesTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SeriesTable, SeriesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// SeriesGTE applies the GTE predicate on the "series" field.
-func SeriesGTE(v uint32) predicate.Drop {
+// HasSeriesWith applies the HasEdge predicate on the "series" edge with a given conditions (other predicates).
+func HasSeriesWith(preds ...predicate.Series) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesLT applies the LT predicate on the "series" field.
-func SeriesLT(v uint32) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesLTE applies the LTE predicate on the "series" field.
-func SeriesLTE(v uint32) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldSeries), v))
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(SeriesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, SeriesTable, SeriesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -21,5 +22,7 @@ func (Series) Fields() []ent.Field {
 
 // Edges of the Series.
 func (Series) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("drops", Drop.Type),
+	}
 }

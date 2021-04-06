@@ -84,16 +84,10 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 
 		ctx := context.Background()
 
-		series, err := d.edb.Series.Query().Where(series.NameEQ(name)).First(ctx)
-		if err != nil {
-			d.sugar.Errorw("failed to fetch series name",
-				"name", name,
-			)
-
-			return nil, err
-		}
-
-		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(series.ID)).All(ctx)
+		rows, err := d.edb.Drop.
+			Query().
+			Where(drop.HasSeriesWith(series.NameEQ(name))).
+			All(ctx)
 		if err != nil {
 			d.sugar.Errorw("failed to fetch table rows",
 				"name", name,

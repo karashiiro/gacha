@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/series"
 )
 
@@ -29,6 +30,21 @@ func (sc *SeriesCreate) SetName(s string) *SeriesCreate {
 func (sc *SeriesCreate) SetID(u uint32) *SeriesCreate {
 	sc.mutation.SetID(u)
 	return sc
+}
+
+// AddDropIDs adds the "drops" edge to the Drop entity by IDs.
+func (sc *SeriesCreate) AddDropIDs(ids ...uint32) *SeriesCreate {
+	sc.mutation.AddDropIDs(ids...)
+	return sc
+}
+
+// AddDrops adds the "drops" edges to the Drop entity.
+func (sc *SeriesCreate) AddDrops(d ...*Drop) *SeriesCreate {
+	ids := make([]uint32, len(d))
+	for i := range d {
+		ids[i] = d[i].ID
+	}
+	return sc.AddDropIDs(ids...)
 }
 
 // Mutation returns the SeriesMutation object of the builder.
@@ -125,6 +141,25 @@ func (sc *SeriesCreate) createSpec() (*Series, *sqlgraph.CreateSpec) {
 			Column: series.FieldName,
 		})
 		_node.Name = value
+	}
+	if nodes := sc.mutation.DropsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   series.DropsTable,
+			Columns: []string{series.DropsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: drop.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

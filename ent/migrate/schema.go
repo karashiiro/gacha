@@ -11,15 +11,23 @@ var (
 	// DropsColumns holds the columns for the "drops" table.
 	DropsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUint32, Increment: true},
+		{Name: "object_id", Type: field.TypeUint32},
 		{Name: "rate", Type: field.TypeFloat32},
-		{Name: "series", Type: field.TypeUint32},
+		{Name: "series_id", Type: field.TypeUint32, Nullable: true},
 	}
 	// DropsTable holds the schema information for the "drops" table.
 	DropsTable = &schema.Table{
-		Name:        "drops",
-		Columns:     DropsColumns,
-		PrimaryKey:  []*schema.Column{DropsColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{},
+		Name:       "drops",
+		Columns:    DropsColumns,
+		PrimaryKey: []*schema.Column{DropsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "drops_series_drops",
+				Columns:    []*schema.Column{DropsColumns[3]},
+				RefColumns: []*schema.Column{SeriesColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// SeriesColumns holds the columns for the "series" table.
 	SeriesColumns = []*schema.Column{
@@ -41,4 +49,5 @@ var (
 )
 
 func init() {
+	DropsTable.ForeignKeys[0].RefTable = SeriesTable
 }

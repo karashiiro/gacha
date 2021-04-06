@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/predicate"
+	"github.com/karashiiro/gacha/ent/series"
 )
 
 // DropUpdate is the builder for updating Drop entities.
@@ -23,6 +25,19 @@ type DropUpdate struct {
 // Where adds a new predicate for the DropUpdate builder.
 func (du *DropUpdate) Where(ps ...predicate.Drop) *DropUpdate {
 	du.mutation.predicates = append(du.mutation.predicates, ps...)
+	return du
+}
+
+// SetObjectID sets the "object_id" field.
+func (du *DropUpdate) SetObjectID(u uint32) *DropUpdate {
+	du.mutation.ResetObjectID()
+	du.mutation.SetObjectID(u)
+	return du
+}
+
+// AddObjectID adds u to the "object_id" field.
+func (du *DropUpdate) AddObjectID(u uint32) *DropUpdate {
+	du.mutation.AddObjectID(u)
 	return du
 }
 
@@ -39,22 +54,27 @@ func (du *DropUpdate) AddRate(f float32) *DropUpdate {
 	return du
 }
 
-// SetSeries sets the "series" field.
-func (du *DropUpdate) SetSeries(u uint32) *DropUpdate {
-	du.mutation.ResetSeries()
-	du.mutation.SetSeries(u)
+// SetSeriesID sets the "series_id" field.
+func (du *DropUpdate) SetSeriesID(u uint32) *DropUpdate {
+	du.mutation.ResetSeriesID()
+	du.mutation.SetSeriesID(u)
 	return du
 }
 
-// AddSeries adds u to the "series" field.
-func (du *DropUpdate) AddSeries(u uint32) *DropUpdate {
-	du.mutation.AddSeries(u)
-	return du
+// SetSeries sets the "series" edge to the Series entity.
+func (du *DropUpdate) SetSeries(s *Series) *DropUpdate {
+	return du.SetSeriesID(s.ID)
 }
 
 // Mutation returns the DropMutation object of the builder.
 func (du *DropUpdate) Mutation() *DropMutation {
 	return du.mutation
+}
+
+// ClearSeries clears the "series" edge to the Series entity.
+func (du *DropUpdate) ClearSeries() *DropUpdate {
+	du.mutation.ClearSeries()
+	return du
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -64,12 +84,18 @@ func (du *DropUpdate) Save(ctx context.Context) (int, error) {
 		affected int
 	)
 	if len(du.hooks) == 0 {
+		if err = du.check(); err != nil {
+			return 0, err
+		}
 		affected, err = du.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*DropMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = du.check(); err != nil {
+				return 0, err
 			}
 			du.mutation = mutation
 			affected, err = du.sqlSave(ctx)
@@ -108,6 +134,14 @@ func (du *DropUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (du *DropUpdate) check() error {
+	if _, ok := du.mutation.SeriesID(); du.mutation.SeriesCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"series\"")
+	}
+	return nil
+}
+
 func (du *DropUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -126,6 +160,20 @@ func (du *DropUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := du.mutation.ObjectID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldObjectID,
+		})
+	}
+	if value, ok := du.mutation.AddedObjectID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldObjectID,
+		})
+	}
 	if value, ok := du.mutation.Rate(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeFloat32,
@@ -140,19 +188,40 @@ func (du *DropUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: drop.FieldRate,
 		})
 	}
-	if value, ok := du.mutation.Series(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint32,
-			Value:  value,
-			Column: drop.FieldSeries,
-		})
+	if du.mutation.SeriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   drop.SeriesTable,
+			Columns: []string{drop.SeriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: series.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if value, ok := du.mutation.AddedSeries(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint32,
-			Value:  value,
-			Column: drop.FieldSeries,
-		})
+	if nodes := du.mutation.SeriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   drop.SeriesTable,
+			Columns: []string{drop.SeriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: series.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, du.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -172,6 +241,19 @@ type DropUpdateOne struct {
 	mutation *DropMutation
 }
 
+// SetObjectID sets the "object_id" field.
+func (duo *DropUpdateOne) SetObjectID(u uint32) *DropUpdateOne {
+	duo.mutation.ResetObjectID()
+	duo.mutation.SetObjectID(u)
+	return duo
+}
+
+// AddObjectID adds u to the "object_id" field.
+func (duo *DropUpdateOne) AddObjectID(u uint32) *DropUpdateOne {
+	duo.mutation.AddObjectID(u)
+	return duo
+}
+
 // SetRate sets the "rate" field.
 func (duo *DropUpdateOne) SetRate(f float32) *DropUpdateOne {
 	duo.mutation.ResetRate()
@@ -185,22 +267,27 @@ func (duo *DropUpdateOne) AddRate(f float32) *DropUpdateOne {
 	return duo
 }
 
-// SetSeries sets the "series" field.
-func (duo *DropUpdateOne) SetSeries(u uint32) *DropUpdateOne {
-	duo.mutation.ResetSeries()
-	duo.mutation.SetSeries(u)
+// SetSeriesID sets the "series_id" field.
+func (duo *DropUpdateOne) SetSeriesID(u uint32) *DropUpdateOne {
+	duo.mutation.ResetSeriesID()
+	duo.mutation.SetSeriesID(u)
 	return duo
 }
 
-// AddSeries adds u to the "series" field.
-func (duo *DropUpdateOne) AddSeries(u uint32) *DropUpdateOne {
-	duo.mutation.AddSeries(u)
-	return duo
+// SetSeries sets the "series" edge to the Series entity.
+func (duo *DropUpdateOne) SetSeries(s *Series) *DropUpdateOne {
+	return duo.SetSeriesID(s.ID)
 }
 
 // Mutation returns the DropMutation object of the builder.
 func (duo *DropUpdateOne) Mutation() *DropMutation {
 	return duo.mutation
+}
+
+// ClearSeries clears the "series" edge to the Series entity.
+func (duo *DropUpdateOne) ClearSeries() *DropUpdateOne {
+	duo.mutation.ClearSeries()
+	return duo
 }
 
 // Save executes the query and returns the updated Drop entity.
@@ -210,12 +297,18 @@ func (duo *DropUpdateOne) Save(ctx context.Context) (*Drop, error) {
 		node *Drop
 	)
 	if len(duo.hooks) == 0 {
+		if err = duo.check(); err != nil {
+			return nil, err
+		}
 		node, err = duo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*DropMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = duo.check(); err != nil {
+				return nil, err
 			}
 			duo.mutation = mutation
 			node, err = duo.sqlSave(ctx)
@@ -254,6 +347,14 @@ func (duo *DropUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (duo *DropUpdateOne) check() error {
+	if _, ok := duo.mutation.SeriesID(); duo.mutation.SeriesCleared() && !ok {
+		return errors.New("ent: clearing a required unique edge \"series\"")
+	}
+	return nil
+}
+
 func (duo *DropUpdateOne) sqlSave(ctx context.Context) (_node *Drop, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -277,6 +378,20 @@ func (duo *DropUpdateOne) sqlSave(ctx context.Context) (_node *Drop, err error) 
 			}
 		}
 	}
+	if value, ok := duo.mutation.ObjectID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldObjectID,
+		})
+	}
+	if value, ok := duo.mutation.AddedObjectID(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldObjectID,
+		})
+	}
 	if value, ok := duo.mutation.Rate(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeFloat32,
@@ -291,19 +406,40 @@ func (duo *DropUpdateOne) sqlSave(ctx context.Context) (_node *Drop, err error) 
 			Column: drop.FieldRate,
 		})
 	}
-	if value, ok := duo.mutation.Series(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint32,
-			Value:  value,
-			Column: drop.FieldSeries,
-		})
+	if duo.mutation.SeriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   drop.SeriesTable,
+			Columns: []string{drop.SeriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: series.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if value, ok := duo.mutation.AddedSeries(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint32,
-			Value:  value,
-			Column: drop.FieldSeries,
-		})
+	if nodes := duo.mutation.SeriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   drop.SeriesTable,
+			Columns: []string{drop.SeriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: series.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Drop{config: duo.config}
 	_spec.Assign = _node.assignValues

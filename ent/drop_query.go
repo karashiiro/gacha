@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/predicate"
+	"github.com/karashiiro/gacha/ent/series"
 )
 
 // DropQuery is the builder for querying Drop entities.
@@ -23,6 +24,8 @@ type DropQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Drop
+	// eager-loading edges.
+	withSeries *SeriesQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -50,6 +53,28 @@ func (dq *DropQuery) Offset(offset int) *DropQuery {
 func (dq *DropQuery) Order(o ...OrderFunc) *DropQuery {
 	dq.order = append(dq.order, o...)
 	return dq
+}
+
+// QuerySeries chains the current query on the "series" edge.
+func (dq *DropQuery) QuerySeries() *SeriesQuery {
+	query := &SeriesQuery{config: dq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := dq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := dq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(drop.Table, drop.FieldID, selector),
+			sqlgraph.To(series.Table, series.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, drop.SeriesTable, drop.SeriesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(dq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Drop entity from the query.
@@ -233,10 +258,22 @@ func (dq *DropQuery) Clone() *DropQuery {
 		offset:     dq.offset,
 		order:      append([]OrderFunc{}, dq.order...),
 		predicates: append([]predicate.Drop{}, dq.predicates...),
+		withSeries: dq.withSeries.Clone(),
 		// clone intermediate query.
 		sql:  dq.sql.Clone(),
 		path: dq.path,
 	}
+}
+
+// WithSeries tells the query-builder to eager-load the nodes that are connected to
+// the "series" edge. The optional arguments are used to configure the query builder of the edge.
+func (dq *DropQuery) WithSeries(opts ...func(*SeriesQuery)) *DropQuery {
+	query := &SeriesQuery{config: dq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	dq.withSeries = query
+	return dq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -245,12 +282,12 @@ func (dq *DropQuery) Clone() *DropQuery {
 // Example:
 //
 //	var v []struct {
-//		Rate float32 `json:"rate,omitempty"`
+//		ObjectID uint32 `json:"object_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Drop.Query().
-//		GroupBy(drop.FieldRate).
+//		GroupBy(drop.FieldObjectID).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 //
@@ -272,11 +309,11 @@ func (dq *DropQuery) GroupBy(field string, fields ...string) *DropGroupBy {
 // Example:
 //
 //	var v []struct {
-//		Rate float32 `json:"rate,omitempty"`
+//		ObjectID uint32 `json:"object_id,omitempty"`
 //	}
 //
 //	client.Drop.Query().
-//		Select(drop.FieldRate).
+//		Select(drop.FieldObjectID).
 //		Scan(ctx, &v)
 //
 func (dq *DropQuery) Select(field string, fields ...string) *DropSelect {
@@ -302,8 +339,11 @@ func (dq *DropQuery) prepareQuery(ctx context.Context) error {
 
 func (dq *DropQuery) sqlAll(ctx context.Context) ([]*Drop, error) {
 	var (
-		nodes = []*Drop{}
-		_spec = dq.querySpec()
+		nodes       = []*Drop{}
+		_spec       = dq.querySpec()
+		loadedTypes = [1]bool{
+			dq.withSeries != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Drop{config: dq.config}
@@ -315,6 +355,7 @@ func (dq *DropQuery) sqlAll(ctx context.Context) ([]*Drop, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, dq.driver, _spec); err != nil {
@@ -323,6 +364,31 @@ func (dq *DropQuery) sqlAll(ctx context.Context) ([]*Drop, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := dq.withSeries; query != nil {
+		ids := make([]uint32, 0, len(nodes))
+		nodeids := make(map[uint32][]*Drop)
+		for i := range nodes {
+			fk := nodes[i].SeriesID
+			ids = append(ids, fk)
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(series.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "series_id" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Series = n
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

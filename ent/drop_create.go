@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/karashiiro/gacha/ent/drop"
+	"github.com/karashiiro/gacha/ent/series"
 )
 
 // DropCreate is the builder for creating a Drop entity.
@@ -19,15 +20,21 @@ type DropCreate struct {
 	hooks    []Hook
 }
 
+// SetObjectID sets the "object_id" field.
+func (dc *DropCreate) SetObjectID(u uint32) *DropCreate {
+	dc.mutation.SetObjectID(u)
+	return dc
+}
+
 // SetRate sets the "rate" field.
 func (dc *DropCreate) SetRate(f float32) *DropCreate {
 	dc.mutation.SetRate(f)
 	return dc
 }
 
-// SetSeries sets the "series" field.
-func (dc *DropCreate) SetSeries(u uint32) *DropCreate {
-	dc.mutation.SetSeries(u)
+// SetSeriesID sets the "series_id" field.
+func (dc *DropCreate) SetSeriesID(u uint32) *DropCreate {
+	dc.mutation.SetSeriesID(u)
 	return dc
 }
 
@@ -35,6 +42,11 @@ func (dc *DropCreate) SetSeries(u uint32) *DropCreate {
 func (dc *DropCreate) SetID(u uint32) *DropCreate {
 	dc.mutation.SetID(u)
 	return dc
+}
+
+// SetSeries sets the "series" edge to the Series entity.
+func (dc *DropCreate) SetSeries(s *Series) *DropCreate {
+	return dc.SetSeriesID(s.ID)
 }
 
 // Mutation returns the DropMutation object of the builder.
@@ -88,11 +100,17 @@ func (dc *DropCreate) SaveX(ctx context.Context) *Drop {
 
 // check runs all checks and user-defined validators on the builder.
 func (dc *DropCreate) check() error {
+	if _, ok := dc.mutation.ObjectID(); !ok {
+		return &ValidationError{Name: "object_id", err: errors.New("ent: missing required field \"object_id\"")}
+	}
 	if _, ok := dc.mutation.Rate(); !ok {
 		return &ValidationError{Name: "rate", err: errors.New("ent: missing required field \"rate\"")}
 	}
-	if _, ok := dc.mutation.Series(); !ok {
-		return &ValidationError{Name: "series", err: errors.New("ent: missing required field \"series\"")}
+	if _, ok := dc.mutation.SeriesID(); !ok {
+		return &ValidationError{Name: "series_id", err: errors.New("ent: missing required field \"series_id\"")}
+	}
+	if _, ok := dc.mutation.SeriesID(); !ok {
+		return &ValidationError{Name: "series", err: errors.New("ent: missing required edge \"series\"")}
 	}
 	return nil
 }
@@ -127,6 +145,14 @@ func (dc *DropCreate) createSpec() (*Drop, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := dc.mutation.ObjectID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldObjectID,
+		})
+		_node.ObjectID = value
+	}
 	if value, ok := dc.mutation.Rate(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeFloat32,
@@ -135,13 +161,25 @@ func (dc *DropCreate) createSpec() (*Drop, *sqlgraph.CreateSpec) {
 		})
 		_node.Rate = value
 	}
-	if value, ok := dc.mutation.Series(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint32,
-			Value:  value,
-			Column: drop.FieldSeries,
-		})
-		_node.Series = value
+	if nodes := dc.mutation.SeriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   drop.SeriesTable,
+			Columns: []string{drop.SeriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint32,
+					Column: series.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.SeriesID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

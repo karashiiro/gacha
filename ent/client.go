@@ -14,6 +14,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -211,6 +212,22 @@ func (c *DropClient) GetX(ctx context.Context, id uint32) *Drop {
 	return obj
 }
 
+// QuerySeries queries the series edge of a Drop.
+func (c *DropClient) QuerySeries(d *Drop) *SeriesQuery {
+	query := &SeriesQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := d.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(drop.Table, drop.FieldID, id),
+			sqlgraph.To(series.Table, series.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, drop.SeriesTable, drop.SeriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(d.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *DropClient) Hooks() []Hook {
 	return c.hooks.Drop
@@ -297,6 +314,22 @@ func (c *SeriesClient) GetX(ctx context.Context, id uint32) *Series {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryDrops queries the drops edge of a Series.
+func (c *SeriesClient) QueryDrops(s *Series) *DropQuery {
+	query := &DropQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := s.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(series.Table, series.FieldID, id),
+			sqlgraph.To(drop.Table, drop.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, series.DropsTable, series.DropsColumn),
+		)
+		fromV = sqlgraph.Neighbors(s.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

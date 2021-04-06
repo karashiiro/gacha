@@ -33,11 +33,13 @@ type DropMutation struct {
 	op            Op
 	typ           string
 	id            *uint32
+	object_id     *uint32
+	addobject_id  *uint32
 	rate          *float32
 	addrate       *float32
-	series        *uint32
-	addseries     *uint32
 	clearedFields map[string]struct{}
+	series        *uint32
+	clearedseries bool
 	done          bool
 	oldValue      func(context.Context) (*Drop, error)
 	predicates    []predicate.Drop
@@ -128,6 +130,62 @@ func (m *DropMutation) ID() (id uint32, exists bool) {
 	return *m.id, true
 }
 
+// SetObjectID sets the "object_id" field.
+func (m *DropMutation) SetObjectID(u uint32) {
+	m.object_id = &u
+	m.addobject_id = nil
+}
+
+// ObjectID returns the value of the "object_id" field in the mutation.
+func (m *DropMutation) ObjectID() (r uint32, exists bool) {
+	v := m.object_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObjectID returns the old "object_id" field's value of the Drop entity.
+// If the Drop object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *DropMutation) OldObjectID(ctx context.Context) (v uint32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldObjectID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldObjectID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObjectID: %w", err)
+	}
+	return oldValue.ObjectID, nil
+}
+
+// AddObjectID adds u to the "object_id" field.
+func (m *DropMutation) AddObjectID(u uint32) {
+	if m.addobject_id != nil {
+		*m.addobject_id += u
+	} else {
+		m.addobject_id = &u
+	}
+}
+
+// AddedObjectID returns the value that was added to the "object_id" field in this mutation.
+func (m *DropMutation) AddedObjectID() (r uint32, exists bool) {
+	v := m.addobject_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetObjectID resets all changes to the "object_id" field.
+func (m *DropMutation) ResetObjectID() {
+	m.object_id = nil
+	m.addobject_id = nil
+}
+
 // SetRate sets the "rate" field.
 func (m *DropMutation) SetRate(f float32) {
 	m.rate = &f
@@ -184,14 +242,13 @@ func (m *DropMutation) ResetRate() {
 	m.addrate = nil
 }
 
-// SetSeries sets the "series" field.
-func (m *DropMutation) SetSeries(u uint32) {
+// SetSeriesID sets the "series_id" field.
+func (m *DropMutation) SetSeriesID(u uint32) {
 	m.series = &u
-	m.addseries = nil
 }
 
-// Series returns the value of the "series" field in the mutation.
-func (m *DropMutation) Series() (r uint32, exists bool) {
+// SeriesID returns the value of the "series_id" field in the mutation.
+func (m *DropMutation) SeriesID() (r uint32, exists bool) {
 	v := m.series
 	if v == nil {
 		return
@@ -199,45 +256,52 @@ func (m *DropMutation) Series() (r uint32, exists bool) {
 	return *v, true
 }
 
-// OldSeries returns the old "series" field's value of the Drop entity.
+// OldSeriesID returns the old "series_id" field's value of the Drop entity.
 // If the Drop object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *DropMutation) OldSeries(ctx context.Context) (v uint32, err error) {
+func (m *DropMutation) OldSeriesID(ctx context.Context) (v uint32, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldSeries is only allowed on UpdateOne operations")
+		return v, fmt.Errorf("OldSeriesID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldSeries requires an ID field in the mutation")
+		return v, fmt.Errorf("OldSeriesID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSeries: %w", err)
+		return v, fmt.Errorf("querying old value for OldSeriesID: %w", err)
 	}
-	return oldValue.Series, nil
+	return oldValue.SeriesID, nil
 }
 
-// AddSeries adds u to the "series" field.
-func (m *DropMutation) AddSeries(u uint32) {
-	if m.addseries != nil {
-		*m.addseries += u
-	} else {
-		m.addseries = &u
-	}
+// ResetSeriesID resets all changes to the "series_id" field.
+func (m *DropMutation) ResetSeriesID() {
+	m.series = nil
 }
 
-// AddedSeries returns the value that was added to the "series" field in this mutation.
-func (m *DropMutation) AddedSeries() (r uint32, exists bool) {
-	v := m.addseries
-	if v == nil {
-		return
-	}
-	return *v, true
+// ClearSeries clears the "series" edge to the Series entity.
+func (m *DropMutation) ClearSeries() {
+	m.clearedseries = true
 }
 
-// ResetSeries resets all changes to the "series" field.
+// SeriesCleared returns if the "series" edge to the Series entity was cleared.
+func (m *DropMutation) SeriesCleared() bool {
+	return m.clearedseries
+}
+
+// SeriesIDs returns the "series" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// SeriesID instead. It exists only for internal usage by the builders.
+func (m *DropMutation) SeriesIDs() (ids []uint32) {
+	if id := m.series; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetSeries resets all changes to the "series" edge.
 func (m *DropMutation) ResetSeries() {
 	m.series = nil
-	m.addseries = nil
+	m.clearedseries = false
 }
 
 // Op returns the operation name.
@@ -254,12 +318,15 @@ func (m *DropMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *DropMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
+	if m.object_id != nil {
+		fields = append(fields, drop.FieldObjectID)
+	}
 	if m.rate != nil {
 		fields = append(fields, drop.FieldRate)
 	}
 	if m.series != nil {
-		fields = append(fields, drop.FieldSeries)
+		fields = append(fields, drop.FieldSeriesID)
 	}
 	return fields
 }
@@ -269,10 +336,12 @@ func (m *DropMutation) Fields() []string {
 // schema.
 func (m *DropMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case drop.FieldObjectID:
+		return m.ObjectID()
 	case drop.FieldRate:
 		return m.Rate()
-	case drop.FieldSeries:
-		return m.Series()
+	case drop.FieldSeriesID:
+		return m.SeriesID()
 	}
 	return nil, false
 }
@@ -282,10 +351,12 @@ func (m *DropMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *DropMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case drop.FieldObjectID:
+		return m.OldObjectID(ctx)
 	case drop.FieldRate:
 		return m.OldRate(ctx)
-	case drop.FieldSeries:
-		return m.OldSeries(ctx)
+	case drop.FieldSeriesID:
+		return m.OldSeriesID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Drop field %s", name)
 }
@@ -295,6 +366,13 @@ func (m *DropMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *DropMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case drop.FieldObjectID:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObjectID(v)
+		return nil
 	case drop.FieldRate:
 		v, ok := value.(float32)
 		if !ok {
@@ -302,12 +380,12 @@ func (m *DropMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetRate(v)
 		return nil
-	case drop.FieldSeries:
+	case drop.FieldSeriesID:
 		v, ok := value.(uint32)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetSeries(v)
+		m.SetSeriesID(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Drop field %s", name)
@@ -317,11 +395,11 @@ func (m *DropMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *DropMutation) AddedFields() []string {
 	var fields []string
+	if m.addobject_id != nil {
+		fields = append(fields, drop.FieldObjectID)
+	}
 	if m.addrate != nil {
 		fields = append(fields, drop.FieldRate)
-	}
-	if m.addseries != nil {
-		fields = append(fields, drop.FieldSeries)
 	}
 	return fields
 }
@@ -331,10 +409,10 @@ func (m *DropMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *DropMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case drop.FieldObjectID:
+		return m.AddedObjectID()
 	case drop.FieldRate:
 		return m.AddedRate()
-	case drop.FieldSeries:
-		return m.AddedSeries()
 	}
 	return nil, false
 }
@@ -344,19 +422,19 @@ func (m *DropMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *DropMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case drop.FieldObjectID:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddObjectID(v)
+		return nil
 	case drop.FieldRate:
 		v, ok := value.(float32)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRate(v)
-		return nil
-	case drop.FieldSeries:
-		v, ok := value.(uint32)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddSeries(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Drop numeric field %s", name)
@@ -385,11 +463,14 @@ func (m *DropMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *DropMutation) ResetField(name string) error {
 	switch name {
+	case drop.FieldObjectID:
+		m.ResetObjectID()
+		return nil
 	case drop.FieldRate:
 		m.ResetRate()
 		return nil
-	case drop.FieldSeries:
-		m.ResetSeries()
+	case drop.FieldSeriesID:
+		m.ResetSeriesID()
 		return nil
 	}
 	return fmt.Errorf("unknown Drop field %s", name)
@@ -397,49 +478,77 @@ func (m *DropMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *DropMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.series != nil {
+		edges = append(edges, drop.EdgeSeries)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *DropMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case drop.EdgeSeries:
+		if id := m.series; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *DropMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *DropMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *DropMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedseries {
+		edges = append(edges, drop.EdgeSeries)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *DropMutation) EdgeCleared(name string) bool {
+	switch name {
+	case drop.EdgeSeries:
+		return m.clearedseries
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *DropMutation) ClearEdge(name string) error {
+	switch name {
+	case drop.EdgeSeries:
+		m.ClearSeries()
+		return nil
+	}
 	return fmt.Errorf("unknown Drop unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *DropMutation) ResetEdge(name string) error {
+	switch name {
+	case drop.EdgeSeries:
+		m.ResetSeries()
+		return nil
+	}
 	return fmt.Errorf("unknown Drop edge %s", name)
 }
 
@@ -451,6 +560,9 @@ type SeriesMutation struct {
 	id            *uint32
 	name          *string
 	clearedFields map[string]struct{}
+	drops         map[uint32]struct{}
+	removeddrops  map[uint32]struct{}
+	cleareddrops  bool
 	done          bool
 	oldValue      func(context.Context) (*Series, error)
 	predicates    []predicate.Series
@@ -577,6 +689,59 @@ func (m *SeriesMutation) ResetName() {
 	m.name = nil
 }
 
+// AddDropIDs adds the "drops" edge to the Drop entity by ids.
+func (m *SeriesMutation) AddDropIDs(ids ...uint32) {
+	if m.drops == nil {
+		m.drops = make(map[uint32]struct{})
+	}
+	for i := range ids {
+		m.drops[ids[i]] = struct{}{}
+	}
+}
+
+// ClearDrops clears the "drops" edge to the Drop entity.
+func (m *SeriesMutation) ClearDrops() {
+	m.cleareddrops = true
+}
+
+// DropsCleared returns if the "drops" edge to the Drop entity was cleared.
+func (m *SeriesMutation) DropsCleared() bool {
+	return m.cleareddrops
+}
+
+// RemoveDropIDs removes the "drops" edge to the Drop entity by IDs.
+func (m *SeriesMutation) RemoveDropIDs(ids ...uint32) {
+	if m.removeddrops == nil {
+		m.removeddrops = make(map[uint32]struct{})
+	}
+	for i := range ids {
+		m.removeddrops[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedDrops returns the removed IDs of the "drops" edge to the Drop entity.
+func (m *SeriesMutation) RemovedDropsIDs() (ids []uint32) {
+	for id := range m.removeddrops {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// DropsIDs returns the "drops" edge IDs in the mutation.
+func (m *SeriesMutation) DropsIDs() (ids []uint32) {
+	for id := range m.drops {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetDrops resets all changes to the "drops" edge.
+func (m *SeriesMutation) ResetDrops() {
+	m.drops = nil
+	m.cleareddrops = false
+	m.removeddrops = nil
+}
+
 // Op returns the operation name.
 func (m *SeriesMutation) Op() Op {
 	return m.op
@@ -690,48 +855,84 @@ func (m *SeriesMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *SeriesMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.drops != nil {
+		edges = append(edges, series.EdgeDrops)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *SeriesMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case series.EdgeDrops:
+		ids := make([]ent.Value, 0, len(m.drops))
+		for id := range m.drops {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *SeriesMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removeddrops != nil {
+		edges = append(edges, series.EdgeDrops)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *SeriesMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case series.EdgeDrops:
+		ids := make([]ent.Value, 0, len(m.removeddrops))
+		for id := range m.removeddrops {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *SeriesMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.cleareddrops {
+		edges = append(edges, series.EdgeDrops)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *SeriesMutation) EdgeCleared(name string) bool {
+	switch name {
+	case series.EdgeDrops:
+		return m.cleareddrops
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *SeriesMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Series unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *SeriesMutation) ResetEdge(name string) error {
+	switch name {
+	case series.EdgeDrops:
+		m.ResetDrops()
+		return nil
+	}
 	return fmt.Errorf("unknown Series edge %s", name)
 }
