@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -21,7 +22,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(os.Getenv("RABBITMQ_CONNECTION_STRING"))
 	if err != nil {
 		log.Fatalln(err)
 	}

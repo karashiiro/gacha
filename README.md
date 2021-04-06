@@ -3,6 +3,7 @@ Gacha microservice written in Go.
 
 ## Environment variables
 ```
+RABBITMQ_CONNECTION_STRING: Connection string for RabbitMQ server
 MYSQL_CONNECTION_STRING: Connection string for local MySQL server, of the form `user:pass@tcp(localhost:3306)/`
 REDIS_LOCATION: Location of local Redis server
 ```
