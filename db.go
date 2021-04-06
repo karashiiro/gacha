@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"os"
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/karashiiro/gacha/ent"
@@ -18,11 +18,12 @@ import (
 // Database represents a GORM database with a Redis cache-aside.
 type Database struct {
 	edb   *ent.Client
-	rdb   *redis.Client
+	rdb   *cache.Cache
 	sugar *zap.SugaredLogger
 }
 
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
+	// Connect to database
 	db, err := sql.Open("mysql", os.Getenv("MYSQL_CONNECTION_STRING"))
 	if err != nil {
 		return nil, err
@@ -53,13 +54,18 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 		return nil, err
 	}
 
-	rdb := redis.NewClient(&redis.Options{
+	// Connect to Redis server
+	r := redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_LOCATION"),
+	})
+
+	c := cache.New(&cache.Options{
+		Redis: r,
 	})
 
 	d := &Database{
 		edb:   edb,
-		rdb:   rdb,
+		rdb:   c,
 		sugar: sugar,
 	}
 
@@ -69,8 +75,8 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 	var dropTable []ent.Drop
 
-	val, err := d.rdb.Get(context.Background(), name).Result()
-	if err == redis.Nil {
+	err := d.rdb.Get(context.Background(), name, &dropTable)
+	if err != nil {
 		ctx := context.Background()
 
 		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(name)).All(ctx)
@@ -89,7 +95,11 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 		}
 
 		// Cache the slice
-		err = d.rdb.Set(ctx, name, drops, 0).Err()
+		err = d.rdb.Set(&cache.Item{
+			Ctx:   ctx,
+			Key:   name,
+			Value: drops,
+		})
 		if err != nil {
 			d.sugar.Errorw("failed to cache table",
 				"name", name,
@@ -101,12 +111,5 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 		dropTable = drops
 	}
 
-	err = json.Unmarshal([]byte(val), &dropTable)
-	if err != nil {
-		d.sugar.Errorw("failed to unmarshal table from Redis",
-			"name", name,
-		)
-	}
-
-	return dropTable, err
+	return dropTable, nil
 }

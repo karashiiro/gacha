@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -49,14 +48,19 @@ func main() {
 		"number", rng.Float32(),
 	)
 
-	rows, err := db.GetDropTable("test_drops")
+	rows, err := db.GetDropTable("test")
 	if err != nil {
 		sugar.Errorw("failed to get rows",
 			"error", err,
 		)
 	}
 
-	for _, row := range rows {
-		fmt.Println(row)
+	roll, err := checkRoll(rows, rng.Float32())
+	if err != nil {
+		sugar.Errorw("gacha roll failed",
+			"error", err,
+		)
 	}
+
+	sugar.Infof("Rolled %v", roll)
 }
