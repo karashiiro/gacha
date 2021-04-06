@@ -124,6 +124,14 @@ func main() {
 						"error", err,
 						"correlation_id", d.CorrelationId,
 					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
 				}
 
 				testValue := rng.Float32()
@@ -133,6 +141,14 @@ func main() {
 						"error", err,
 						"correlation_id", d.CorrelationId,
 					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
 				}
 
 				sugar.Infow(fmt.Sprintf("rolled %v", roll),
@@ -149,6 +165,94 @@ func main() {
 						"error", err,
 						"correlation_id", d.CorrelationId,
 					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
+				}
+			case "set_table":
+				dropInsertsRaw := m.Parameters[1:]
+				dropInserts := make([]DropInsert, len(dropInsertsRaw))
+				for i, param := range dropInsertsRaw {
+					err := json.Unmarshal([]byte(param), &dropInserts[i])
+					if err != nil {
+						sugar.Errorw("failed to unmarshal message",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+						err = d.Reject(false)
+						if err != nil {
+							sugar.Warnw("message ack could not be delivered to channel",
+								"error", err,
+								"correlation_id", d.CorrelationId,
+							)
+						}
+						continue
+					}
+				}
+
+				err := db.SetDropTable(m.Parameters[0], dropInserts)
+				if err != nil {
+					sugar.Errorw("failed to set drop table",
+						"error", err,
+						"correlation_id", d.CorrelationId,
+					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
+				}
+
+				sugar.Infow(fmt.Sprintf("set table %s", m.Parameters[0]),
+					"correlation_id", d.CorrelationId,
+				)
+
+				r := &message.Result{
+					Success: true,
+				}
+
+				rb, err := json.Marshal(r)
+				if err != nil {
+					sugar.Errorw("json marshalling failed",
+						"error", err,
+						"correlation_id", d.CorrelationId,
+					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
+				}
+
+				err = ch.Publish("", d.ReplyTo, false, false, amqp.Publishing{
+					ContentType:   "application/json",
+					CorrelationId: d.CorrelationId,
+					Body:          rb,
+				})
+				if err != nil {
+					sugar.Errorw("reply failed",
+						"error", err,
+						"correlation_id", d.CorrelationId,
+					)
+					err = d.Reject(false)
+					if err != nil {
+						sugar.Warnw("message ack could not be delivered to channel",
+							"error", err,
+							"correlation_id", d.CorrelationId,
+						)
+					}
+					continue
 				}
 			default:
 				sugar.Warnw("received unknown message",
