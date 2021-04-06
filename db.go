@@ -14,6 +14,7 @@ import (
 	"github.com/karashiiro/gacha/ent"
 	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/series"
+	"github.com/karashiiro/gacha/message"
 	"go.uber.org/zap"
 )
 
@@ -142,14 +143,8 @@ func (d *Database) DeleteDropTable(seriesName string) error {
 	return err
 }
 
-// DropInsert is an insert request for a new drop.
-type DropInsert struct {
-	ObjectID uint32  `json:"object_id"`
-	Rate     float32 `json:"rate"`
-}
-
 // AddDropTable adds a single drop table to the database. The rates of each inserted drop must sum to 1.0.
-func (d *Database) SetDropTable(seriesName string, drops []DropInsert) error {
+func (d *Database) SetDropTable(seriesName string, drops []message.DropInsert) error {
 	ctx := context.Background()
 
 	sr, err := d.addSeries(seriesName)

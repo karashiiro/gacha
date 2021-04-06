@@ -174,28 +174,26 @@ func main() {
 					}
 					continue
 				}
-			case "set_table":
-				dropInsertsRaw := m.Parameters[1:]
-				dropInserts := make([]DropInsert, len(dropInsertsRaw))
-				for i, param := range dropInsertsRaw {
-					err := json.Unmarshal([]byte(param), &dropInserts[i])
+			case "set_drop_table":
+				dropInsertsRaw := m.Parameters[1]
+				dropInserts := make([]message.DropInsert, len(dropInsertsRaw))
+				err := json.Unmarshal([]byte(dropInsertsRaw), &dropInserts)
+				if err != nil {
+					sugar.Errorw("failed to unmarshal drop inserts",
+						"error", err,
+						"correlation_id", d.CorrelationId,
+					)
+					err = d.Reject(false)
 					if err != nil {
-						sugar.Errorw("failed to unmarshal message",
+						sugar.Warnw("message ack could not be delivered to channel",
 							"error", err,
 							"correlation_id", d.CorrelationId,
 						)
-						err = d.Reject(false)
-						if err != nil {
-							sugar.Warnw("message ack could not be delivered to channel",
-								"error", err,
-								"correlation_id", d.CorrelationId,
-							)
-						}
-						continue
 					}
+					continue
 				}
 
-				err := db.SetDropTable(m.Parameters[0], dropInserts)
+				err = db.SetDropTable(m.Parameters[0], dropInserts)
 				if err != nil {
 					sugar.Errorw("failed to set drop table",
 						"error", err,
