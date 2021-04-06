@@ -104,11 +104,13 @@ func main() {
 			if err != nil {
 				sugar.Errorw("failed to unmarshal message",
 					"error", err,
+					"correlation_id", d.CorrelationId,
 				)
 				err = d.Reject(false)
 				if err != nil {
 					sugar.Warnw("message ack could not be delivered to channel",
 						"error", err,
+						"correlation_id", d.CorrelationId,
 					)
 				}
 				continue
@@ -120,18 +122,16 @@ func main() {
 				if err != nil {
 					sugar.Errorw("failed to get rows",
 						"error", err,
+						"correlation_id", d.CorrelationId,
 					)
 				}
 
 				testValue := rng.Float32()
-				sugar.Infow("random number generated",
-					"number", testValue,
-				)
-
 				roll, err := checkRoll(rows, testValue)
 				if err != nil {
 					sugar.Errorw("gacha roll failed",
 						"error", err,
+						"correlation_id", d.CorrelationId,
 					)
 				}
 
@@ -145,16 +145,19 @@ func main() {
 				if err != nil {
 					sugar.Errorw("reply failed",
 						"error", err,
+						"correlation_id", d.CorrelationId,
 					)
 				}
 			default:
 				sugar.Warnw("received unknown message",
 					"unk_msg", string(d.Body),
+					"correlation_id", d.CorrelationId,
 				)
 				err = d.Reject(false)
 				if err != nil {
 					sugar.Warnw("message ack could not be delivered to channel",
 						"error", err,
+						"correlation_id", d.CorrelationId,
 					)
 				}
 				continue
@@ -164,6 +167,7 @@ func main() {
 			if err != nil {
 				sugar.Warnw("message ack could not be delivered to channel",
 					"error", err,
+					"correlation_id", d.CorrelationId,
 				)
 			}
 		}
