@@ -14,6 +14,9 @@ func checkRoll(drops []ent.Drop, val float32) (*ent.Drop, error) {
 	agg := float32(0)
 	for _, drop := range drops {
 		agg += drop.Rate
+		if agg > 1.0 {
+			break
+		}
 		if agg > val {
 			return &drop, nil
 		}
@@ -44,10 +47,6 @@ func main() {
 
 	sugar.Infow("application started")
 
-	sugar.Infow("random number generated",
-		"number", rng.Float32(),
-	)
-
 	rows, err := db.GetDropTable("test")
 	if err != nil {
 		sugar.Errorw("failed to get rows",
@@ -55,7 +54,12 @@ func main() {
 		)
 	}
 
-	roll, err := checkRoll(rows, rng.Float32())
+	testValue := rng.Float32()
+	sugar.Infow("random number generated",
+		"number", testValue,
+	)
+
+	roll, err := checkRoll(rows, testValue)
 	if err != nil {
 		sugar.Errorw("gacha roll failed",
 			"error", err,
