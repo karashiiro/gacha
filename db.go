@@ -77,6 +77,10 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 
 	err := d.rdb.Get(context.Background(), name, &dropTable)
 	if err != nil {
+		d.sugar.Warnw("cache miss occurred, fetching from database",
+			"name", name,
+		)
+
 		ctx := context.Background()
 
 		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(name)).All(ctx)
