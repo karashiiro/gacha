@@ -16,7 +16,7 @@ func (Drop) Fields() []ent.Field {
 		field.Uint32("id").
 			Unique(),
 		field.Float32("rate"),
-		field.String("series"),
+		field.Uint32("series"),
 	}
 }
 

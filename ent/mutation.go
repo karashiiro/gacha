@@ -9,6 +9,7 @@ import (
 
 	"github.com/karashiiro/gacha/ent/drop"
 	"github.com/karashiiro/gacha/ent/predicate"
+	"github.com/karashiiro/gacha/ent/series"
 
 	"entgo.io/ent"
 )
@@ -22,7 +23,8 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeDrop = "Drop"
+	TypeDrop   = "Drop"
+	TypeSeries = "Series"
 )
 
 // DropMutation represents an operation that mutates the Drop nodes in the graph.
@@ -33,7 +35,8 @@ type DropMutation struct {
 	id            *uint32
 	rate          *float32
 	addrate       *float32
-	series        *string
+	series        *uint32
+	addseries     *uint32
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*Drop, error)
@@ -182,12 +185,13 @@ func (m *DropMutation) ResetRate() {
 }
 
 // SetSeries sets the "series" field.
-func (m *DropMutation) SetSeries(s string) {
-	m.series = &s
+func (m *DropMutation) SetSeries(u uint32) {
+	m.series = &u
+	m.addseries = nil
 }
 
 // Series returns the value of the "series" field in the mutation.
-func (m *DropMutation) Series() (r string, exists bool) {
+func (m *DropMutation) Series() (r uint32, exists bool) {
 	v := m.series
 	if v == nil {
 		return
@@ -198,7 +202,7 @@ func (m *DropMutation) Series() (r string, exists bool) {
 // OldSeries returns the old "series" field's value of the Drop entity.
 // If the Drop object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *DropMutation) OldSeries(ctx context.Context) (v string, err error) {
+func (m *DropMutation) OldSeries(ctx context.Context) (v uint32, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, fmt.Errorf("OldSeries is only allowed on UpdateOne operations")
 	}
@@ -212,9 +216,28 @@ func (m *DropMutation) OldSeries(ctx context.Context) (v string, err error) {
 	return oldValue.Series, nil
 }
 
+// AddSeries adds u to the "series" field.
+func (m *DropMutation) AddSeries(u uint32) {
+	if m.addseries != nil {
+		*m.addseries += u
+	} else {
+		m.addseries = &u
+	}
+}
+
+// AddedSeries returns the value that was added to the "series" field in this mutation.
+func (m *DropMutation) AddedSeries() (r uint32, exists bool) {
+	v := m.addseries
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
 // ResetSeries resets all changes to the "series" field.
 func (m *DropMutation) ResetSeries() {
 	m.series = nil
+	m.addseries = nil
 }
 
 // Op returns the operation name.
@@ -280,7 +303,7 @@ func (m *DropMutation) SetField(name string, value ent.Value) error {
 		m.SetRate(v)
 		return nil
 	case drop.FieldSeries:
-		v, ok := value.(string)
+		v, ok := value.(uint32)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -297,6 +320,9 @@ func (m *DropMutation) AddedFields() []string {
 	if m.addrate != nil {
 		fields = append(fields, drop.FieldRate)
 	}
+	if m.addseries != nil {
+		fields = append(fields, drop.FieldSeries)
+	}
 	return fields
 }
 
@@ -307,6 +333,8 @@ func (m *DropMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case drop.FieldRate:
 		return m.AddedRate()
+	case drop.FieldSeries:
+		return m.AddedSeries()
 	}
 	return nil, false
 }
@@ -322,6 +350,13 @@ func (m *DropMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddRate(v)
+		return nil
+	case drop.FieldSeries:
+		v, ok := value.(uint32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSeries(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Drop numeric field %s", name)
@@ -406,4 +441,297 @@ func (m *DropMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *DropMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Drop edge %s", name)
+}
+
+// SeriesMutation represents an operation that mutates the Series nodes in the graph.
+type SeriesMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *uint32
+	name          *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*Series, error)
+	predicates    []predicate.Series
+}
+
+var _ ent.Mutation = (*SeriesMutation)(nil)
+
+// seriesOption allows management of the mutation configuration using functional options.
+type seriesOption func(*SeriesMutation)
+
+// newSeriesMutation creates new mutation for the Series entity.
+func newSeriesMutation(c config, op Op, opts ...seriesOption) *SeriesMutation {
+	m := &SeriesMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeSeries,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withSeriesID sets the ID field of the mutation.
+func withSeriesID(id uint32) seriesOption {
+	return func(m *SeriesMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Series
+		)
+		m.oldValue = func(ctx context.Context) (*Series, error) {
+			once.Do(func() {
+				if m.done {
+					err = fmt.Errorf("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Series.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withSeries sets the old Series of the mutation.
+func withSeries(node *Series) seriesOption {
+	return func(m *SeriesMutation) {
+		m.oldValue = func(context.Context) (*Series, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m SeriesMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m SeriesMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Series entities.
+func (m *SeriesMutation) SetID(id uint32) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID
+// is only available if it was provided to the builder.
+func (m *SeriesMutation) ID() (id uint32, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// SetName sets the "name" field.
+func (m *SeriesMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *SeriesMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Series entity.
+// If the Series object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SeriesMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *SeriesMutation) ResetName() {
+	m.name = nil
+}
+
+// Op returns the operation name.
+func (m *SeriesMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (Series).
+func (m *SeriesMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *SeriesMutation) Fields() []string {
+	fields := make([]string, 0, 1)
+	if m.name != nil {
+		fields = append(fields, series.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *SeriesMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case series.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *SeriesMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case series.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown Series field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SeriesMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case series.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Series field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *SeriesMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *SeriesMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *SeriesMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Series numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *SeriesMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *SeriesMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *SeriesMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Series nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *SeriesMutation) ResetField(name string) error {
+	switch name {
+	case series.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown Series field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *SeriesMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *SeriesMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *SeriesMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *SeriesMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *SeriesMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *SeriesMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *SeriesMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown Series unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *SeriesMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown Series edge %s", name)
 }

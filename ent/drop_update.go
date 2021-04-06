@@ -40,8 +40,15 @@ func (du *DropUpdate) AddRate(f float32) *DropUpdate {
 }
 
 // SetSeries sets the "series" field.
-func (du *DropUpdate) SetSeries(s string) *DropUpdate {
-	du.mutation.SetSeries(s)
+func (du *DropUpdate) SetSeries(u uint32) *DropUpdate {
+	du.mutation.ResetSeries()
+	du.mutation.SetSeries(u)
+	return du
+}
+
+// AddSeries adds u to the "series" field.
+func (du *DropUpdate) AddSeries(u uint32) *DropUpdate {
+	du.mutation.AddSeries(u)
 	return du
 }
 
@@ -135,7 +142,14 @@ func (du *DropUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := du.mutation.Series(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldSeries,
+		})
+	}
+	if value, ok := du.mutation.AddedSeries(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
 			Value:  value,
 			Column: drop.FieldSeries,
 		})
@@ -172,8 +186,15 @@ func (duo *DropUpdateOne) AddRate(f float32) *DropUpdateOne {
 }
 
 // SetSeries sets the "series" field.
-func (duo *DropUpdateOne) SetSeries(s string) *DropUpdateOne {
-	duo.mutation.SetSeries(s)
+func (duo *DropUpdateOne) SetSeries(u uint32) *DropUpdateOne {
+	duo.mutation.ResetSeries()
+	duo.mutation.SetSeries(u)
+	return duo
+}
+
+// AddSeries adds u to the "series" field.
+func (duo *DropUpdateOne) AddSeries(u uint32) *DropUpdateOne {
+	duo.mutation.AddSeries(u)
 	return duo
 }
 
@@ -272,7 +293,14 @@ func (duo *DropUpdateOne) sqlSave(ctx context.Context) (_node *Drop, err error) 
 	}
 	if value, ok := duo.mutation.Series(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeUint32,
+			Value:  value,
+			Column: drop.FieldSeries,
+		})
+	}
+	if value, ok := duo.mutation.AddedSeries(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeUint32,
 			Value:  value,
 			Column: drop.FieldSeries,
 		})

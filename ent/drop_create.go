@@ -26,8 +26,8 @@ func (dc *DropCreate) SetRate(f float32) *DropCreate {
 }
 
 // SetSeries sets the "series" field.
-func (dc *DropCreate) SetSeries(s string) *DropCreate {
-	dc.mutation.SetSeries(s)
+func (dc *DropCreate) SetSeries(u uint32) *DropCreate {
+	dc.mutation.SetSeries(u)
 	return dc
 }
 
@@ -137,7 +137,7 @@ func (dc *DropCreate) createSpec() (*Drop, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := dc.mutation.Series(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
+			Type:   field.TypeUint32,
 			Value:  value,
 			Column: drop.FieldSeries,
 		})

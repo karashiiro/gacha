@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Drop is the client for interacting with the Drop builders.
 	Drop *DropClient
+	// Series is the client for interacting with the Series builders.
+	Series *SeriesClient
 
 	// lazily loaded.
 	client     *Client
@@ -150,6 +152,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Drop = NewDropClient(tx.config)
+	tx.Series = NewSeriesClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

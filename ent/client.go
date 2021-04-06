@@ -10,6 +10,7 @@ import (
 	"github.com/karashiiro/gacha/ent/migrate"
 
 	"github.com/karashiiro/gacha/ent/drop"
+	"github.com/karashiiro/gacha/ent/series"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -22,6 +23,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Drop is the client for interacting with the Drop builders.
 	Drop *DropClient
+	// Series is the client for interacting with the Series builders.
+	Series *SeriesClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -36,6 +39,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Drop = NewDropClient(c.config)
+	c.Series = NewSeriesClient(c.config)
 }
 
 // Open opens a database/sql.DB specified by the driver name and
@@ -70,6 +74,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:    ctx,
 		config: cfg,
 		Drop:   NewDropClient(cfg),
+		Series: NewSeriesClient(cfg),
 	}, nil
 }
 
@@ -89,6 +94,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		config: cfg,
 		Drop:   NewDropClient(cfg),
+		Series: NewSeriesClient(cfg),
 	}, nil
 }
 
@@ -119,6 +125,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Drop.Use(hooks...)
+	c.Series.Use(hooks...)
 }
 
 // DropClient is a client for the Drop schema.
@@ -207,4 +214,92 @@ func (c *DropClient) GetX(ctx context.Context, id uint32) *Drop {
 // Hooks returns the client hooks.
 func (c *DropClient) Hooks() []Hook {
 	return c.hooks.Drop
+}
+
+// SeriesClient is a client for the Series schema.
+type SeriesClient struct {
+	config
+}
+
+// NewSeriesClient returns a client for the Series from the given config.
+func NewSeriesClient(c config) *SeriesClient {
+	return &SeriesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `series.Hooks(f(g(h())))`.
+func (c *SeriesClient) Use(hooks ...Hook) {
+	c.hooks.Series = append(c.hooks.Series, hooks...)
+}
+
+// Create returns a create builder for Series.
+func (c *SeriesClient) Create() *SeriesCreate {
+	mutation := newSeriesMutation(c.config, OpCreate)
+	return &SeriesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Series entities.
+func (c *SeriesClient) CreateBulk(builders ...*SeriesCreate) *SeriesCreateBulk {
+	return &SeriesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Series.
+func (c *SeriesClient) Update() *SeriesUpdate {
+	mutation := newSeriesMutation(c.config, OpUpdate)
+	return &SeriesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SeriesClient) UpdateOne(s *Series) *SeriesUpdateOne {
+	mutation := newSeriesMutation(c.config, OpUpdateOne, withSeries(s))
+	return &SeriesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SeriesClient) UpdateOneID(id uint32) *SeriesUpdateOne {
+	mutation := newSeriesMutation(c.config, OpUpdateOne, withSeriesID(id))
+	return &SeriesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Series.
+func (c *SeriesClient) Delete() *SeriesDelete {
+	mutation := newSeriesMutation(c.config, OpDelete)
+	return &SeriesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *SeriesClient) DeleteOne(s *Series) *SeriesDeleteOne {
+	return c.DeleteOneID(s.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *SeriesClient) DeleteOneID(id uint32) *SeriesDeleteOne {
+	builder := c.Delete().Where(series.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SeriesDeleteOne{builder}
+}
+
+// Query returns a query builder for Series.
+func (c *SeriesClient) Query() *SeriesQuery {
+	return &SeriesQuery{config: c.config}
+}
+
+// Get returns a Series entity by its id.
+func (c *SeriesClient) Get(ctx context.Context, id uint32) (*Series, error) {
+	return c.Query().Where(series.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SeriesClient) GetX(ctx context.Context, id uint32) *Series {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *SeriesClient) Hooks() []Hook {
+	return c.hooks.Series
 }

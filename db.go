@@ -12,6 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/karashiiro/gacha/ent"
 	"github.com/karashiiro/gacha/ent/drop"
+	"github.com/karashiiro/gacha/ent/series"
 	"go.uber.org/zap"
 )
 
@@ -83,7 +84,16 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 
 		ctx := context.Background()
 
-		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(name)).All(ctx)
+		series, err := d.edb.Series.Query().Where(series.NameEQ(name)).First(ctx)
+		if err != nil {
+			d.sugar.Errorw("failed to fetch series name",
+				"name", name,
+			)
+
+			return nil, err
+		}
+
+		rows, err := d.edb.Drop.Query().Where(drop.SeriesEQ(series.ID)).All(ctx)
 		if err != nil {
 			d.sugar.Errorw("failed to fetch table rows",
 				"name", name,

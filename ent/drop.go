@@ -18,7 +18,7 @@ type Drop struct {
 	// Rate holds the value of the "rate" field.
 	Rate float32 `json:"rate,omitempty"`
 	// Series holds the value of the "series" field.
-	Series string `json:"series,omitempty"`
+	Series uint32 `json:"series,omitempty"`
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -28,10 +28,8 @@ func (*Drop) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case drop.FieldRate:
 			values[i] = &sql.NullFloat64{}
-		case drop.FieldID:
+		case drop.FieldID, drop.FieldSeries:
 			values[i] = &sql.NullInt64{}
-		case drop.FieldSeries:
-			values[i] = &sql.NullString{}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Drop", columns[i])
 		}
@@ -60,10 +58,10 @@ func (d *Drop) assignValues(columns []string, values []interface{}) error {
 				d.Rate = float32(value.Float64)
 			}
 		case drop.FieldSeries:
-			if value, ok := values[i].(*sql.NullString); !ok {
+			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field series", values[i])
 			} else if value.Valid {
-				d.Series = value.String
+				d.Series = uint32(value.Int64)
 			}
 		}
 	}
@@ -96,7 +94,7 @@ func (d *Drop) String() string {
 	builder.WriteString(", rate=")
 	builder.WriteString(fmt.Sprintf("%v", d.Rate))
 	builder.WriteString(", series=")
-	builder.WriteString(d.Series)
+	builder.WriteString(fmt.Sprintf("%v", d.Series))
 	builder.WriteByte(')')
 	return builder.String()
 }

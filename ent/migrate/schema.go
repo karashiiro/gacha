@@ -12,7 +12,7 @@ var (
 	DropsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUint32, Increment: true},
 		{Name: "rate", Type: field.TypeFloat32},
-		{Name: "series", Type: field.TypeString},
+		{Name: "series", Type: field.TypeUint32},
 	}
 	// DropsTable holds the schema information for the "drops" table.
 	DropsTable = &schema.Table{
@@ -21,9 +21,22 @@ var (
 		PrimaryKey:  []*schema.Column{DropsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{},
 	}
+	// SeriesColumns holds the columns for the "series" table.
+	SeriesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUint32, Increment: true},
+		{Name: "name", Type: field.TypeString},
+	}
+	// SeriesTable holds the schema information for the "series" table.
+	SeriesTable = &schema.Table{
+		Name:        "series",
+		Columns:     SeriesColumns,
+		PrimaryKey:  []*schema.Column{SeriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		DropsTable,
+		SeriesTable,
 	}
 )
 

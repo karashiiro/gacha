@@ -98,7 +98,7 @@ func Rate(v float32) predicate.Drop {
 }
 
 // Series applies equality check predicate on the "series" field. It's identical to SeriesEQ.
-func Series(v string) predicate.Drop {
+func Series(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldSeries), v))
 	})
@@ -181,21 +181,21 @@ func RateLTE(v float32) predicate.Drop {
 }
 
 // SeriesEQ applies the EQ predicate on the "series" field.
-func SeriesEQ(v string) predicate.Drop {
+func SeriesEQ(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldSeries), v))
 	})
 }
 
 // SeriesNEQ applies the NEQ predicate on the "series" field.
-func SeriesNEQ(v string) predicate.Drop {
+func SeriesNEQ(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.NEQ(s.C(FieldSeries), v))
 	})
 }
 
 // SeriesIn applies the In predicate on the "series" field.
-func SeriesIn(vs ...string) predicate.Drop {
+func SeriesIn(vs ...uint32) predicate.Drop {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -212,7 +212,7 @@ func SeriesIn(vs ...string) predicate.Drop {
 }
 
 // SeriesNotIn applies the NotIn predicate on the "series" field.
-func SeriesNotIn(vs ...string) predicate.Drop {
+func SeriesNotIn(vs ...uint32) predicate.Drop {
 	v := make([]interface{}, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -229,65 +229,30 @@ func SeriesNotIn(vs ...string) predicate.Drop {
 }
 
 // SeriesGT applies the GT predicate on the "series" field.
-func SeriesGT(v string) predicate.Drop {
+func SeriesGT(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.GT(s.C(FieldSeries), v))
 	})
 }
 
 // SeriesGTE applies the GTE predicate on the "series" field.
-func SeriesGTE(v string) predicate.Drop {
+func SeriesGTE(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.GTE(s.C(FieldSeries), v))
 	})
 }
 
 // SeriesLT applies the LT predicate on the "series" field.
-func SeriesLT(v string) predicate.Drop {
+func SeriesLT(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.LT(s.C(FieldSeries), v))
 	})
 }
 
 // SeriesLTE applies the LTE predicate on the "series" field.
-func SeriesLTE(v string) predicate.Drop {
+func SeriesLTE(v uint32) predicate.Drop {
 	return predicate.Drop(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesContains applies the Contains predicate on the "series" field.
-func SeriesContains(v string) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.Contains(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesHasPrefix applies the HasPrefix predicate on the "series" field.
-func SeriesHasPrefix(v string) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.HasPrefix(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesHasSuffix applies the HasSuffix predicate on the "series" field.
-func SeriesHasSuffix(v string) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.HasSuffix(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesEqualFold applies the EqualFold predicate on the "series" field.
-func SeriesEqualFold(v string) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.EqualFold(s.C(FieldSeries), v))
-	})
-}
-
-// SeriesContainsFold applies the ContainsFold predicate on the "series" field.
-func SeriesContainsFold(v string) predicate.Drop {
-	return predicate.Drop(func(s *sql.Selector) {
-		s.Where(sql.ContainsFold(s.C(FieldSeries), v))
 	})
 }
 
