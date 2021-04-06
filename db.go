@@ -103,6 +103,7 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 			Ctx:   ctx,
 			Key:   name,
 			Value: drops,
+			TTL:   30 * 24 * time.Hour,
 		})
 		if err != nil {
 			d.sugar.Errorw("failed to cache table",
