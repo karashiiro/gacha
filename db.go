@@ -30,15 +30,15 @@ func (gz *GormZapLogger) LogMode(level logger.LogLevel) logger.Interface {
 }
 
 func (gz *GormZapLogger) Info(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Infow(msg, keysAndValues)
+	gz.sugar.Infof(msg, keysAndValues)
 }
 
 func (gz *GormZapLogger) Warn(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Warnw(msg, keysAndValues)
+	gz.sugar.Warnf(msg, keysAndValues)
 }
 
 func (gz *GormZapLogger) Error(ctx context.Context, msg string, keysAndValues ...interface{}) {
-	gz.sugar.Errorw(msg, keysAndValues)
+	gz.sugar.Errorf(msg, keysAndValues)
 }
 
 func (gz *GormZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
@@ -50,12 +50,13 @@ func (gz *GormZapLogger) Trace(ctx context.Context, begin time.Time, fc func() (
 }
 
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
-	db, err := gorm.Open(mysql.Open(os.Getenv("MYSQL_LOCATION")), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(os.Getenv("MYSQL_CONNECTION_STRING")), &gorm.Config{
 		Logger: &GormZapLogger{sugar: sugar},
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	db.AutoMigrate(&Drop{})
 
 	rdb := redis.NewClient(&redis.Options{
