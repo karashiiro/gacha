@@ -42,7 +42,7 @@ func main() {
 	defer db.edb.Close()
 
 	// Initialize randomizer with current time
-	rngSource := rand.NewSource(time.Now().Unix())
+	rngSource := rand.NewSource(time.Now().UnixNano())
 	rng = rand.New(rngSource)
 
 	sugar.Infow("application started")
