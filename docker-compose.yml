@@ -4,7 +4,9 @@ services:
     image: mariadb:10.5.9
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: alpine
+      MYSQL_ROOT_PASSWORD: gacha
+      MYSQL_USER: gacha
+      MYSQL_PASSWORD: gacha
     ports:
       - "7225:7225"
     volumes:
@@ -20,8 +22,8 @@ services:
     image: gacha
     restart: always
     environment:
-      MYSQL_CONNECTION_STRING: root:alpine@tcp(localhost:7225)/
-      REDIS_LOCATION: localhost:7226
+      MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:7225)/
+      REDIS_LOCATION: server:7226
     volumes:
       - type: volume
         source: gacha-log
