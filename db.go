@@ -28,12 +28,16 @@ type Database struct {
 // NewDatabase creates a new database connection.
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	// Connect to database
-	db, err := sql.Open("mysql", os.Getenv("GACHA_MYSQL_CONNECTION_STRING"))
-	if err != nil {
-		sugar.Errorw("failed to connect to database",
-			"error", err,
-		)
-		return nil, err
+	var db *sql.DB
+	var err error
+	for db == nil {
+		db, err = sql.Open("mysql", os.Getenv("GACHA_MYSQL_CONNECTION_STRING"))
+		if err != nil {
+			sugar.Errorw("failed to connect to database, retrying in 5 seconds",
+				"error", err,
+			)
+			time.Sleep(5 * time.Second)
+		}
 	}
 
 	db.SetMaxIdleConns(10)
@@ -41,12 +45,14 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	db.SetConnMaxLifetime(time.Hour)
 	driver := entsql.OpenDB("mysql", db)
 
-	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS gacha CHARACTER SET = 'utf8';")
-	if err != nil {
-		sugar.Errorw("failed to create database",
+	var dbCreateQuery = "CREATE DATABASE IF NOT EXISTS gacha CHARACTER SET = 'utf8';"
+	_, err = db.Exec(dbCreateQuery)
+	for err != nil {
+		sugar.Errorw("failed to create database, retrying in 5 seconds",
 			"error", err,
 		)
-		return nil, err
+		time.Sleep(5 * time.Second)
+		_, err = db.Exec(dbCreateQuery)
 	}
 
 	_, err = db.Exec("USE gacha;")
