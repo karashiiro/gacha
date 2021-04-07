@@ -28,7 +28,7 @@ type Database struct {
 // NewDatabase creates a new database connection.
 func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	// Connect to database
-	db, err := sql.Open("mysql", os.Getenv("MYSQL_CONNECTION_STRING"))
+	db, err := sql.Open("mysql", os.Getenv("GACHA_MYSQL_CONNECTION_STRING"))
 	if err != nil {
 		sugar.Errorw("failed to connect to database",
 			"error", err,
@@ -69,7 +69,7 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 
 	// Connect to Redis server
 	r := redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_LOCATION"),
+		Addr: os.Getenv("GACHA_REDIS_LOCATION"),
 	})
 
 	c := cache.New(&cache.Options{

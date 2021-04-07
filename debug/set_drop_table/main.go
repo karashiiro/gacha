@@ -45,7 +45,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	conn, err := amqp.Dial(os.Getenv("RABBITMQ_CONNECTION_STRING"))
+	conn, err := amqp.Dial(os.Getenv("GACHA_RMQ_CONNECTION_STRING"))
 	if err != nil {
 		log.Fatalln(err)
 	}

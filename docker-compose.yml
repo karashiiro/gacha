@@ -19,8 +19,9 @@ services:
     image: gacha
     restart: always
     environment:
-      MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:7552)/
-      REDIS_LOCATION: server:7553
+      GACHA_MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:7552)/
+      GACHA_REDIS_LOCATION: server:7553
+      GACHA_RMQ_CHANNEL: gacha_v0
     depends_on:
       - mariadb
       - redis
