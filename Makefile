@@ -8,5 +8,5 @@ help: ## Show this help
 docker: ## Build the application Docker image
 	docker build -t gacha .
 
-ent: ## Regenerate ent files
+ent: ./ent/schema/drop.go ./ent/schema/series.go ## Regenerate ent files
 	go generate ./ent
