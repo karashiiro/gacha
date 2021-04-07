@@ -18,7 +18,7 @@ services:
     image: redis:5.0.9
     restart: always
   gacha:
-    image: gacha
+    build: .
     restart: always
     environment:
       GACHA_MYSQL_CONNECTION_STRING: gacha:gacha@tcp(mariadb:3306)/
