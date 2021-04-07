@@ -43,6 +43,17 @@ Example output:
 ```
 Inserts the provided `DropInsert`s into the database under the provided drop series. The rates of the `DropInsert`s must sum to 1, or the command will fail.
 
+Example output:
+#### Server
+```
+{"level":"info","ts":1617760538.7823374,"caller":"gacha/main.go:213","msg":"set drop table: test","correlation_id":"ac013fa4-e5f3-4b4f-a999-1613138c67b5"}
+```
+
+#### Client
+```
+2021/04/06 18:55:38 Succeeded
+```
+
 ### Delete drop table
 ```json
 {
@@ -51,3 +62,14 @@ Inserts the provided `DropInsert`s into the database under the provided drop ser
 }
 ```
 Deletes a drop table and all drop rates associated with it.
+
+Example output:
+#### Server
+```
+{"level":"info","ts":1617760487.7681694,"caller":"gacha/main.go:254","msg":"deleted drop table: test","correlation_id":"f7d5e6a4-46a3-47f6-b343-bdab6b4221b5"}
+```
+
+#### Client
+```
+2021/04/06 18:54:47 Succeeded
+```
