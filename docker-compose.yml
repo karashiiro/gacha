@@ -17,7 +17,7 @@ services:
     environment:
       GACHA_MYSQL_CONNECTION_STRING: gacha:gacha@tcp(mariadb:3306)/
       GACHA_REDIS_LOCATION: redis:6379
-      GACHA_RMQ_CONNECTION_STRING: amqp://guest:guest@host:5672/
+      GACHA_RMQ_CONNECTION_STRING: amqp://gacha:gacha@${DOCKER_GATEWAY_HOST:-host.docker.internal}:5672/
       GACHA_RMQ_CHANNEL: gacha_v0
     depends_on:
       - mariadb
