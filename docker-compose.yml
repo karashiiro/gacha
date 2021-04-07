@@ -7,27 +7,25 @@ services:
       MYSQL_ROOT_PASSWORD: gacha
       MYSQL_USER: gacha
       MYSQL_PASSWORD: gacha
-    ports:
-      - "7225:7225"
-    volumes:
-      - type: volume
-        source: maria-data
-        target: /var/lib/mysql
+    expose:
+      - "3306"
   redis:
     image: redis:5.0.9
     restart: always
-    ports:
-      - "7226:7226"
+    expose:
+      - "6379"
   gacha:
     image: gacha
     restart: always
     environment:
-      MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:7225)/
-      REDIS_LOCATION: server:7226
+      MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:3306)/
+      REDIS_LOCATION: server:6379
+    depends_on:
+      - mariadb
+      - redis
     volumes:
       - type: volume
         source: gacha-log
         target: /app/log
 volumes:
-  maria-data:
   gacha-log:
