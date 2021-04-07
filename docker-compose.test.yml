@@ -34,6 +34,7 @@ services:
         source: gacha-log
         target: /app/log
   sut:
+    build: .
     command: go test
     depends_on:
       - gacha
