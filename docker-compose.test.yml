@@ -34,7 +34,9 @@ services:
         source: gacha-log
         target: /app/log
   sut:
-    build: .
+    build:
+      context: .
+      dockerfile: ./Dockerfile.debug
     command: go test
     depends_on:
       - gacha
