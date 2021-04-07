@@ -3,5 +3,3 @@ ENV CGO_ENABLED=0
 WORKDIR /app
 COPY ./ /app
 RUN go mod download
-RUN go build -ldflags="-s -w"
-CMD ["/app/gacha"]
