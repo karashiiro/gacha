@@ -38,6 +38,8 @@ services:
       context: .
       dockerfile: ./Dockerfile.debug
     command: go test
+    environment:
+      GACHA_RMQ_CONNECTION_STRING: amqp://gacha:gacha@rabbitmq:5672/
     depends_on:
       - gacha
 volumes:
