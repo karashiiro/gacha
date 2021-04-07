@@ -40,6 +40,7 @@ services:
     command: go test
     environment:
       GACHA_RMQ_CONNECTION_STRING: amqp://gacha:gacha@rabbitmq:5672/
+      GACHA_RMQ_CHANNEL: gacha_v0
     depends_on:
       - gacha
 volumes:

@@ -46,7 +46,7 @@ func main() {
 
 	corrID := uuid.NewString()
 
-	err = ch.Publish("", "gacha_v0", false, false, amqp.Publishing{
+	err = ch.Publish("", os.Getenv("GACHA_RMQ_CHANNEL"), false, false, amqp.Publishing{
 		ContentType:   "application/json",
 		CorrelationId: corrID,
 		ReplyTo:       mq.Name,

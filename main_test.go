@@ -2,13 +2,14 @@ package main_test
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
-	"github.com/karashiiro/gacha/message"
-	"github.com/streadway/amqp"
 	"log"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/karashiiro/gacha/message"
+	"github.com/streadway/amqp"
 )
 
 func TestRoll(t *testing.T) {
@@ -46,7 +47,7 @@ func TestRoll(t *testing.T) {
 
 	corrID := uuid.NewString()
 
-	err = ch.Publish("", "gacha_v0", false, false, amqp.Publishing{
+	err = ch.Publish("", os.Getenv("GACHA_RMQ_CHANNEL"), false, false, amqp.Publishing{
 		ContentType:   "application/json",
 		CorrelationId: corrID,
 		ReplyTo:       mq.Name,
