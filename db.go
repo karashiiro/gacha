@@ -30,6 +30,9 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	// Connect to database
 	db, err := sql.Open("mysql", os.Getenv("MYSQL_CONNECTION_STRING"))
 	if err != nil {
+		sugar.Errorw("failed to connect to database",
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -37,17 +40,20 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 	db.SetMaxOpenConns(100)
 	db.SetConnMaxLifetime(time.Hour)
 	driver := entsql.OpenDB("mysql", db)
-	if err != nil {
-		return nil, err
-	}
 
 	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS gacha CHARACTER SET = 'utf8';")
 	if err != nil {
+		sugar.Errorw("failed to create database",
+			"error", err,
+		)
 		return nil, err
 	}
 
 	_, err = db.Exec("USE gacha;")
 	if err != nil {
+		sugar.Errorw("failed to switch to database",
+			"error", err,
+		)
 		return nil, err
 	}
 
@@ -55,6 +61,9 @@ func NewDatabase(sugar *zap.SugaredLogger) (*Database, error) {
 
 	// Run auto-migration
 	if err := edb.Schema.Create(context.Background()); err != nil {
+		sugar.Errorw("failed to auto-migrate schema",
+			"error", err,
+		)
 		return nil, err
 	}
 
