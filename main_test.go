@@ -35,7 +35,7 @@ func TestSetTable(t *testing.T) {
 
 	dropsBytes, err := json.Marshal(dropsToAdd)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	m := &message.Message{
@@ -45,7 +45,7 @@ func TestSetTable(t *testing.T) {
 
 	mBytes, err := json.Marshal(m)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	var conn *amqp.Connection
@@ -61,19 +61,19 @@ func TestSetTable(t *testing.T) {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("opened RabbitMQ channel")
 	defer ch.Close()
 
 	mq, err := ch.QueueDeclare("", false, false, true, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	msgs, err := ch.Consume(mq.Name, "", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	corrID := uuid.NewString()
@@ -85,14 +85,14 @@ func TestSetTable(t *testing.T) {
 		Body:          mBytes,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("published application request")
 
 	for d := range msgs {
 		if corrID == d.CorrelationId {
 			if string(d.Body) != "Success" {
-				log.Fatalln("Did not succeed")
+				t.Fatalf("Did not succeed")
 			}
 			break
 		}
@@ -109,7 +109,7 @@ func TestRoll(t *testing.T) {
 
 	mBytes, err := json.Marshal(m)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	var conn *amqp.Connection
@@ -125,19 +125,19 @@ func TestRoll(t *testing.T) {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("opened RabbitMQ channel")
 	defer ch.Close()
 
 	mq, err := ch.QueueDeclare("", false, false, true, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	msgs, err := ch.Consume(mq.Name, "", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	corrID := uuid.NewString()
@@ -149,7 +149,7 @@ func TestRoll(t *testing.T) {
 		Body:          mBytes,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("published application request")
 
@@ -158,7 +158,7 @@ func TestRoll(t *testing.T) {
 		if corrID == d.CorrelationId {
 			roll, err = strconv.Atoi(string(d.Body))
 			if err != nil {
-				log.Fatalln(err)
+				t.Fatal(err)
 			}
 			break
 		}
@@ -175,7 +175,7 @@ func TestDeleteTable(t *testing.T) {
 
 	mBytes, err := json.Marshal(m)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	var conn *amqp.Connection
@@ -191,19 +191,19 @@ func TestDeleteTable(t *testing.T) {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("opened RabbitMQ channel")
 	defer ch.Close()
 
 	mq, err := ch.QueueDeclare("", false, false, true, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	msgs, err := ch.Consume(mq.Name, "", false, false, false, false, nil)
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 
 	corrID := uuid.NewString()
@@ -215,14 +215,14 @@ func TestDeleteTable(t *testing.T) {
 		Body:          mBytes,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		t.Fatal(err)
 	}
 	log.Println("published application request")
 
 	for d := range msgs {
 		if corrID == d.CorrelationId {
 			if string(d.Body) != "Success" {
-				log.Fatalln("Did not succeed")
+				t.Fatalf("Did not succeed")
 			}
 			break
 		}
