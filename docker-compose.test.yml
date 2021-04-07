@@ -1,0 +1,41 @@
+version: "3.9"
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.14
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: gacha
+      RABBITMQ_DEFAULT_PASS: gacha
+  mariadb:
+    image: mariadb:10.5.9
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: gacha
+      MYSQL_DATABASE: gacha
+      MYSQL_USER: gacha
+      MYSQL_PASSWORD: gacha
+  redis:
+    image: redis:5.0.9
+    restart: always
+  gacha:
+    image: gacha
+    restart: always
+    environment:
+      GACHA_MYSQL_CONNECTION_STRING: gacha:gacha@tcp(mariadb:3306)/
+      GACHA_REDIS_LOCATION: redis:6379
+      GACHA_RMQ_CONNECTION_STRING: amqp://gacha:gacha@rabbitmq:5672/
+      GACHA_RMQ_CHANNEL: gacha_v0
+    depends_on:
+      - mariadb
+      - redis
+      - rabbitmq
+    volumes:
+      - type: volume
+        source: gacha-log
+        target: /app/log
+  sut:
+    command: go test
+    depends_on:
+      - gacha
+volumes:
+  gacha-log:
