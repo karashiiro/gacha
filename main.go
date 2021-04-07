@@ -41,7 +41,7 @@ func main() {
 	// Connect to database
 	db, err := NewDatabase(sugar)
 	if err != nil {
-		sugar.Errorf("couldn't connect to database, aborting",
+		sugar.Errorw("couldn't connect to database, aborting",
 			"error", err,
 		)
 		panic(err)
@@ -49,18 +49,21 @@ func main() {
 	defer db.edb.Close()
 
 	// Open message queue
-	conn, err := amqp.Dial(os.Getenv("GACHA_RMQ_CONNECTION_STRING"))
-	if err != nil {
-		sugar.Errorf("couldn't open RabbitMQ connection, aborting",
-			"error", err,
-		)
-		panic(err)
+	var conn *amqp.Connection
+	for conn == nil {
+		conn, err = amqp.Dial(os.Getenv("GACHA_RMQ_CONNECTION_STRING"))
+		if err != nil {
+			sugar.Errorw("couldn't open RabbitMQ connection, retrying in 5 seconds",
+				"error", err,
+			)
+			time.Sleep(5 * time.Second)
+		}
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		sugar.Errorf("couldn't open message channel, aborting",
+		sugar.Errorw("couldn't open message channel, aborting",
 			"error", err,
 		)
 		panic(err)
@@ -69,7 +72,7 @@ func main() {
 
 	mq, err := ch.QueueDeclare("gacha_v0", false, false, false, false, nil)
 	if err != nil {
-		sugar.Errorf("couldn't open message queue, aborting",
+		sugar.Errorw("couldn't open message queue, aborting",
 			"error", err,
 		)
 		panic(err)
@@ -77,7 +80,7 @@ func main() {
 
 	err = ch.Qos(1, 0, false)
 	if err != nil {
-		sugar.Errorf("couldn't set QoS, aborting",
+		sugar.Errorw("couldn't set QoS, aborting",
 			"error", err,
 		)
 		panic(err)
