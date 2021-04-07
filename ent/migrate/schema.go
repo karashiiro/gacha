@@ -32,7 +32,7 @@ var (
 	// SeriesColumns holds the columns for the "series" table.
 	SeriesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUint32, Increment: true},
-		{Name: "name", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Unique: true},
 	}
 	// SeriesTable holds the schema information for the "series" table.
 	SeriesTable = &schema.Table{

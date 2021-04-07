@@ -134,10 +134,22 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 	return dropTable, nil
 }
 
-func (d *Database) addSeries(seriesName string) (*ent.Series, error) {
+// Adds a new series to the database, or returns an existing one.
+func (d *Database) addSeries(ctx context.Context, seriesName string) (*ent.Series, error) {
+	sr, err := d.edb.Series.Query().
+		Where(series.NameEQ(seriesName)).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(sr) != 0 {
+		return sr[0], nil
+	}
+
 	return d.edb.Series.Create().
 		SetName(seriesName).
-		Save(context.Background())
+		Save(ctx)
 }
 
 // DeleteDropTable deletes a series and all of its children.
@@ -162,7 +174,7 @@ func (d *Database) DeleteDropTable(seriesName string) error {
 func (d *Database) SetDropTable(seriesName string, drops []message.DropInsert) error {
 	ctx := context.Background()
 
-	sr, err := d.addSeries(seriesName)
+	sr, err := d.addSeries(ctx, seriesName)
 	if err != nil {
 		return err
 	}

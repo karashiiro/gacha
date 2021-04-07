@@ -16,7 +16,8 @@ func (Series) Fields() []ent.Field {
 	return []ent.Field{
 		field.Uint32("id").
 			Unique(),
-		field.String("name"),
+		field.String("name").
+			Unique(),
 	}
 }
 
