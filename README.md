@@ -1,5 +1,5 @@
 # gacha
-Dockerized Gacha microservice without authentication. Primarily intended to be used as a base for further development, but the currently-implemented tests pass.
+Dockerized gacha microservice without authentication. Primarily intended to be used as a base for further development, but the currently-implemented tests pass.
 
 ## Environment variables
 ```
