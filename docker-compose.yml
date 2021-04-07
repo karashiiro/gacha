@@ -4,7 +4,10 @@ services:
     image: mariadb:10.5.9
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: alpine
+      MYSQL_ROOT_PASSWORD: gacha
+      MYSQL_DATABASE: gacha
+      MYSQL_USER: gacha
+      MYSQL_PASSWORD: gacha
     expose:
       - "3306"
   redis:
@@ -16,7 +19,7 @@ services:
     image: gacha
     restart: always
     environment:
-      MYSQL_CONNECTION_STRING: root:alpine@tcp(server:3306)/
+      MYSQL_CONNECTION_STRING: gacha:gacha@tcp(server:3306)/
       REDIS_LOCATION: server:6379
     depends_on:
       - mariadb
