@@ -8,13 +8,9 @@ services:
       MYSQL_DATABASE: gacha
       MYSQL_USER: gacha
       MYSQL_PASSWORD: gacha
-    ports:
-      - "7552:3306"
   redis:
     image: redis:5.0.9
     restart: always
-    ports:
-      - "7553:6379"
   gacha:
     image: gacha
     restart: always
