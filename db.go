@@ -122,7 +122,7 @@ func (d *Database) GetDropTable(name string) ([]ent.Drop, error) {
 			Ctx:   ctx,
 			Key:   name,
 			Value: drops,
-			TTL:   30 * 24 * time.Hour,
+			TTL:   24 * time.Hour,
 		})
 		if err != nil {
 			return nil, err
@@ -166,6 +166,11 @@ func (d *Database) DeleteDropTable(seriesName string) error {
 	_, err = d.edb.Series.Delete().
 		Where(series.NameEQ(seriesName)).
 		Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = d.rdb.Delete(ctx, seriesName)
 
 	return err
 }
@@ -200,8 +205,24 @@ func (d *Database) SetDropTable(seriesName string, drops []message.DropInsert) e
 		return err
 	}
 
-	_, err = d.edb.Drop.CreateBulk(builders...).
+	dbDrops, err := d.edb.Drop.CreateBulk(builders...).
 		Save(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Copy the DB rows into a slice
+	dbDropValues := make([]ent.Drop, len(dbDrops))
+	for i, dr := range dbDrops {
+		dbDropValues[i] = *dr
+	}
+
+	d.rdb.Set(&cache.Item{
+		Ctx:   ctx,
+		Key:   seriesName,
+		Value: dbDropValues,
+		TTL:   24 * time.Hour,
+	})
 
 	return err
 }
